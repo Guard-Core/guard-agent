@@ -1700,7 +1700,7 @@
 <li><strong><code>fastapi-guard</code></strong> for FastAPI</li>
 <li><strong><code>flaskapi-guard</code></strong> for Flask</li>
 <li><strong><code>djapi-guard</code></strong> for Django</li>
-<li><strong><code>tornadoapi-guard</code></strong> for Tornado <em>(coming soon — not yet published on PyPI)</em></li>
+<li><strong><code>tornadoapi-guard</code></strong> for Tornado</li>
 <li><strong><code>redis</code></strong> ≥ 6.0.0 - Client library for persistent buffering (production recommended)</li>
 <li><strong>Redis Server</strong> 6.0+ - External service for high-availability deployments</li>
 <li><strong>ASGI/WSGI Server</strong> - Uvicorn, Hypercorn, Gunicorn, or similar for application hosting</li>
@@ -1716,11 +1716,10 @@
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Django</span>
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>uv<span class="w"> </span>add<span class="w"> </span>djapi-guard<span class="w"> </span>guard-agent
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Tornado</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>uv<span class="w"> </span>add<span class="w"> </span>tornadoapi-guard<span class="w"> </span>guard-agent
 </span></code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Tornado adapter — coming soon</p>
-<p>The Tornado adapter (<code>tornadoapi-guard</code>) is not yet published on PyPI. Until it ships, use Guard Agent standalone (see below) for Tornado applications.</p>
-</div>
 <p>For standalone agent deployments (direct wire protocol, no adapter):</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>add<span class="w"> </span>guard-agent
 </span></code></pre></div>

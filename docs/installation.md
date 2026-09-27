@@ -32,7 +32,7 @@ The following dependencies are automatically managed during installation:
   - **`fastapi-guard`** for FastAPI
   - **`flaskapi-guard`** for Flask
   - **`djapi-guard`** for Django
-  - **`tornadoapi-guard`** for Tornado *(coming soon — not yet published on PyPI)*
+  - **`tornadoapi-guard`** for Tornado
 - **`redis`** ≥ 6.0.0 - Client library for persistent buffering (production recommended)
 - **Redis Server** 6.0+ - External service for high-availability deployments
 - **ASGI/WSGI Server** - Uvicorn, Hypercorn, Gunicorn, or similar for application hosting
@@ -52,10 +52,10 @@ uv add flaskapi-guard guard-agent
 
 # Django
 uv add djapi-guard guard-agent
-```
 
-!!! note "Tornado adapter — coming soon"
-    The Tornado adapter (`tornadoapi-guard`) is not yet published on PyPI. Until it ships, use Guard Agent standalone (see below) for Tornado applications.
+# Tornado
+uv add tornadoapi-guard guard-agent
+```
 
 For standalone agent deployments (direct wire protocol, no adapter):
 

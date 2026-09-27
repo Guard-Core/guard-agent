@@ -3,6 +3,24 @@ Release Notes
 
 ___
 
+The parity release: agent feature surface locked across all four language ports (v3.1.0)
+------------------------------------------------------------------------------------------
+
+### About this release
+
+- **This is the parity release for the Guard agent family.** The 3.1.0 wave (Python, TypeScript, Go, PHP, Rust) ships the same feature surface in every port. Note: the earlier 4.1.0 family tags were a version-accuracy error and were yanked/unpublished; 3.1.0 is the correct version for this train.
+- The conformance corpus (219 cases, spec 4.1.0) validates the shared surface across the ports.
+
+### Added (3.0.2 -> 3.1.0 feature list)
+
+- **AES-256-GCM encrypted ingest.** Event batches can be encrypted end to end with an AES-256-GCM key; the server decrypts after transport-level TLS, so batch contents are opaque to intermediaries even on the wire.
+- **Sensitive-header redaction.** Authorization, Cookie, Set-Cookie, and other configured sensitive headers are redacted at ingest and again at egress, so secrets never leave the process in plaintext form.
+- **Dynamic rules.** The agent polls the guard-core server for dynamic rate-limit and ban rules on a configurable interval and enforces them locally, emitting `dynamic_rule_applied`, `dynamic_rule_updated`, and `dynamic_rule_violation` events.
+- **Local rate limiters.** Rule-driven local rate limiting with auto-ban support, usable without a Redis round trip on every event.
+- **Helpers.** Shared helpers for event construction, batching, and redaction are exported for adapter authors building custom ingest paths.
+
+___
+
 v3.0.2 (2026-09-23)
 -------------------
 

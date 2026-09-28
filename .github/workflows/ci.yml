@@ -78,5 +78,5 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run --extra dev pytest -v --cov=guard_agent
+          uv run --extra dev pytest -v --cov=guard_agent --cov-fail-under=100
 

@@ -67,7 +67,10 @@ dev = [
     "pytest-mock",
     "radon",
     "ruff",
-    "semgrep",
+    # Floor + cap so uv's fresh (untracked-lockfile) resolution cannot walk
+    # semgrep down to the ancient 0.86.3 sdist, which fails to build without a
+    # system semgrep-core binary (fastapi's pins trigger that backtracking).
+    "semgrep>=1.100,<2",
     "tornado",
     # tornadoapi-guard: not yet published on PyPI (only a yanked 0.0.1).
     # Re-enable here once the adapter ships a 1.0.0+ release to PyPI.

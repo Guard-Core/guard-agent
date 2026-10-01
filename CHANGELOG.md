@@ -21,6 +21,24 @@ The parity release: agent feature surface locked across all four language ports 
 
 ___
 
+v3.2.0 (2026-10-01)
+-------------------
+
+Buildable dev resolution, Slack-free CI, and an enforced 100% coverage gate (v3.2.0)
+------------------------------------------------------------------------------------
+
+### Fixed
+
+- **`guard-agent[dev]` installs resolve again (#65).** The repo commits no uv.lock, so every `uv sync --extra dev` re-resolves fresh; with fastapi in the dev extra, that fresh resolution backtracked semgrep all the way to 0.86.3, whose sdist `setup.py` aborts without a system semgrep-core binary. That broke `guard-agent[dev]` installs in guard-agent's own CI and in the guard-core ecosystem-gate consumer jobs, and shipped in the 3.1.0 metadata. semgrep is now floored at `>=1.100,<2`, so resolution lands on a wheel release (1.178.0) and the dev extra installs cleanly again.
+
+### Changed
+
+- **CI no longer posts Slack notifications (#64).** The Slack notification steps were removed from ci.yml, code-ql.yml, docs.yml, release-shim.yml, release.yml and scheduled-lint.yml.
+- **The 100% coverage gate is now enforced in CI (#64).** The test job runs pytest with `--cov-fail-under=100`, so a coverage regression fails the build instead of only being reported; this matches the project's 100%-coverage target.
+- **github/codeql-action bumped from 4.38.1 to 4.38.2 (#63).**
+
+___
+
 v3.0.2 (2026-09-23)
 -------------------
 

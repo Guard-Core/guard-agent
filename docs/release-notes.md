@@ -21,6 +21,16 @@ The parity release: agent feature surface locked across all four language ports 
 
 ___
 
+v3.2.1 (2026-10-07)
+-------------------
+
+TITLE (v3.2.1)
+------------
+
+CONTENT
+
+___
+
 v3.2.0 (2026-10-01)
 -------------------
 

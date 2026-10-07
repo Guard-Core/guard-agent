@@ -13,6 +13,7 @@ on:
 jobs:
   publish-shim:
     runs-on: ubuntu-latest
+    environment: pypi
     permissions:
       id-token: write
       contents: read
@@ -29,22 +30,12 @@ jobs:
       - name: Install build tooling
         run: |
           python -m pip install --upgrade pip
-          pip install build twine
+          pip install build
 
       - name: Build shim package
         working-directory: shim
         run: |
           python -m build
 
-      - name: Publish shim to PyPI
-        # Uses TWINE_PASSWORD_LEGACY — a token scoped to the legacy
-        # `fastapi-guard-agent` PyPI project. The main `TWINE_PASSWORD`
-        # secret is scoped to `guard-agent` post-rotation and cannot
-        # upload to the legacy project.
-        working-directory: shim
-        env:
-          TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD_LEGACY }}
-        run: |
-          twine upload dist/*
-
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@release/v1

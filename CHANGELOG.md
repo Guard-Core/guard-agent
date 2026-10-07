@@ -3,6 +3,16 @@ Release Notes
 
 ___
 
+v3.2.1 (2026-10-06)
+-------------------
+
+The lockstep release: version alignment with the engines at 4.3.1 (v3.2.1)
+---------------------------------------------------------------------------
+
+No agent behavior changes. Shipped so the agents family moves in lockstep with the engines at 4.3.1 while guard-agent-ts carries the js/polynomial-redos fix (linear `stripTrailingSlashes` replacing anchored quantifier regexes in `config.ts`/`transport.ts`, CodeQL HIGH).
+
+___
+
 The parity release: agent feature surface locked across all four language ports (v3.1.0)
 ------------------------------------------------------------------------------------------
 

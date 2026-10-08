@@ -1,8 +1,8 @@
 site_name: Guard Agent
 site_description: Framework-agnostic telemetry and monitoring agent for the Guard security ecosystem (fastapi-guard, flaskapi-guard, djangoapi-guard, tornadoapi-guard).
-site_url: https://rennf93.github.io/guard-agent/latest/
-repo_name: rennf93/guard-agent
-repo_url: https://github.com/rennf93/guard-agent
+site_url: https://guard-core.github.io/guard-agent/latest/
+repo_name: Guard-Core/guard-agent
+repo_url: https://github.com/Guard-Core/guard-agent
 edit_uri: edit/master/docs/
 
 theme:
@@ -90,7 +90,7 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/rennf93/guard-agent
+      link: https://github.com/Guard-Core/guard-agent
       name: GitHub
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/guard-agent/
@@ -124,7 +124,7 @@ extra:
           data: 0
           note: >-
             Thanks for your feedback! Help us improve by using our
-            <a href="https://github.com/rennf93/guard-agent/issues/new">issue tracker</a>.
+            <a href="https://github.com/Guard-Core/guard-agent/issues/new">issue tracker</a>.
 
   generator: false
   meta:
@@ -135,7 +135,7 @@ extra:
     - property: og:description
       content: Framework-agnostic telemetry and monitoring agent for the Guard security ecosystem (fastapi-guard, flaskapi-guard, djangoapi-guard, tornadoapi-guard).
     - property: og:image
-      content: https://rennf93.github.io/guard-agent/assets/guard_agent_legend.svg
+      content: https://guard-core.github.io/guard-agent/assets/guard_agent_legend.svg
     - name: keywords
       content: fastapi, flask, django, tornado, security, middleware, python, telemetry, monitoring, ip control, rate limiting, penetration detection
 

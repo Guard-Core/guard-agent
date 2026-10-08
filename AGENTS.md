@@ -210,10 +210,10 @@ uv run pytest tests/test_buffer.py::test_name -v
 
 ## Related Projects
 
-- **guard-core** - Framework-agnostic security engine (telemetry models live here too): <https://github.com/rennf93/guard-core>
-- **fastapi-guard** - FastAPI/Starlette adapter: <https://github.com/rennf93/fastapi-guard>
-- **flaskapi-guard** - Flask extension adapter: <https://github.com/rennf93/flaskapi-guard>
-- **djapi-guard** - Django middleware adapter: <https://github.com/rennf93/djapi-guard>
-- **tornadoapi-guard** - Tornado handler/middleware adapter: <https://github.com/rennf93/tornadoapi-guard>
-- **guard-core-mcp** - MCP server for config validation and docs search: <https://github.com/rennf93/guard-core-mcp>
-- **guard-core-app** - SaaS platform this agent reports to (ingestion API, dashboard, playground): <https://github.com/rennf93/guard-core-app>
+- **guard-core** - Framework-agnostic security engine (telemetry models live here too): <https://github.com/Guard-Core/guard-core>
+- **fastapi-guard** - FastAPI/Starlette adapter: <https://github.com/Guard-Core/fastapi-guard>
+- **flaskapi-guard** - Flask extension adapter: <https://github.com/Guard-Core/flaskapi-guard>
+- **djapi-guard** - Django middleware adapter: <https://github.com/Guard-Core/djapi-guard>
+- **tornadoapi-guard** - Tornado handler/middleware adapter: <https://github.com/Guard-Core/tornadoapi-guard>
+- **guard-core-mcp** - MCP server for config validation and docs search: <https://github.com/Guard-Core/guard-core-mcp>
+- **guard-core-app** - SaaS platform this agent reports to (ingestion API, dashboard, playground): <https://github.com/Guard-Core/guard-core-app>

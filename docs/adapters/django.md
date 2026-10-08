@@ -86,4 +86,4 @@ urlpatterns = [path("", views.root)]
 
 ## Related
 
-- [`djapi-guard` on GitHub](https://github.com/rennf93/djangoapi-guard)
+- [`djapi-guard` on GitHub](https://github.com/Guard-Core/djangoapi-guard)

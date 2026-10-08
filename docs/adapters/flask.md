@@ -94,4 +94,4 @@ def create_app() -> Flask:
 
 ## Related
 
-- [`flaskapi-guard` on GitHub](https://github.com/rennf93/flaskapi-guard)
+- [`flaskapi-guard` on GitHub](https://github.com/Guard-Core/flaskapi-guard)

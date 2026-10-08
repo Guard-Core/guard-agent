@@ -3,7 +3,7 @@ name = "guard-agent"
 version = "3.2.1"
 description = "Framework-agnostic telemetry and monitoring agent for the Guard security ecosystem (fastapi-guard, flaskapi-guard, djangoapi-guard, tornadoapi-guard)"
 authors = [
-    {name = "Renzo Franceschini", email = "rennf93@users.noreply.github.com"}
+    {name = "Renzo Franceschini", email = "rennf93@guard-core.com"}
 ]
 readme = "README.md"
 license = "MIT"
@@ -31,10 +31,10 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://guard-core.com"
-Documentation = "https://rennf93.github.io/guard-agent/latest/"
-Repository = "https://github.com/rennf93/guard-agent"
-Changelog = "https://github.com/rennf93/guard-agent/blob/master/CHANGELOG.md"
-"Bug Tracker" = "https://github.com/rennf93/guard-agent/issues"
+Documentation = "https://guard-core.github.io/guard-agent/latest/"
+Repository = "https://github.com/Guard-Core/guard-agent"
+Changelog = "https://github.com/Guard-Core/guard-agent/blob/master/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/Guard-Core/guard-agent/issues"
 "Cloud Dashboard" = "https://app.guard-core.com"
 "Live Playground" = "https://playground.guard-core.com"
 

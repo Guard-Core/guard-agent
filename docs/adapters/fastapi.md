@@ -91,7 +91,7 @@ You don't see any of this in your code, and you don't need to.
 
 ## When you need the full guide
 
-For the decision tree across all three integration paths (standalone / SaaS / encrypted SaaS), env-var conventions, common pitfalls (nginx body limits, key/api-key pairing, circuit-breaker behavior), see the canonical [**fastapi-guard Integration Guide**](https://rennf93.github.io/fastapi-guard/latest/tutorial/integration/).
+For the decision tree across all three integration paths (standalone / SaaS / encrypted SaaS), env-var conventions, common pitfalls (nginx body limits, key/api-key pairing, circuit-breaker behavior), see the canonical [**fastapi-guard Integration Guide**](https://guard-core.github.io/fastapi-guard/latest/tutorial/integration/).
 
 ## Dashboard & Playground
 
@@ -100,6 +100,6 @@ For the decision tree across all three integration paths (standalone / SaaS / en
 
 ## Related
 
-- [`fastapi-guard` on GitHub](https://github.com/rennf93/fastapi-guard)
-- [`fastapi-guard` integration guide](https://rennf93.github.io/fastapi-guard/latest/tutorial/integration/) — full decision tree + pitfalls
-- [Canonical full example](https://github.com/rennf93/guard-core-app/blob/master/examples/app.py) in `guard-core-app`
+- [`fastapi-guard` on GitHub](https://github.com/Guard-Core/fastapi-guard)
+- [`fastapi-guard` integration guide](https://guard-core.github.io/fastapi-guard/latest/tutorial/integration/) — full decision tree + pitfalls
+- [Canonical full example](https://github.com/Guard-Core/guard-core-app/blob/master/examples/app.py) in `guard-core-app`

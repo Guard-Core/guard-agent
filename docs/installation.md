@@ -111,7 +111,7 @@ pip-sync requirements.txt
 For contributors and advanced users requiring source access:
 
 ```bash
-git clone https://github.com/rennf93/guard-agent.git
+git clone https://github.com/Guard-Core/guard-agent.git
 cd guard-agent
 uv sync --extra dev
 ```

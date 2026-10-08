@@ -21,6 +21,16 @@ The parity release: agent feature surface locked across all four language ports 
 
 ___
 
+v3.2.2 (2026-10-08)
+-------------------
+
+Guard-Core org migration
+------------------------
+
+Metadata release: PyPI project URLs, the docs canonical domain, and all repository links moved to the Guard-Core org. No code changes.
+
+___
+
 v3.2.1 (2026-10-07)
 -------------------
 

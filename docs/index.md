@@ -7,8 +7,8 @@ keywords: fastapi, flask, django, tornado, security, middleware, telemetry, moni
 # Guard Agent
 
 <p align="center">
-    <a href="https://rennf93.github.io/guard-agent/latest/">
-        <img src="https://rennf93.github.io/guard-agent/latest/assets/guard_agent_legend.svg" alt="Guard Agent">
+    <a href="https://guard-core.github.io/guard-agent/latest/">
+        <img src="https://guard-core.github.io/guard-agent/latest/assets/guard_agent_legend.svg" alt="Guard Agent">
     </a>
 </p>
 
@@ -23,28 +23,31 @@ keywords: fastapi, flask, django, tornado, security, middleware, telemetry, moni
     <a href="https://badge.fury.io/py/guard-agent">
         <img src="https://badge.fury.io/py/guard-agent.svg?cache=none&icon=si%3Apython&icon_color=%23008cb4" alt="PyPiVersion">
     </a>
-    <a href="https://github.com/rennf93/guard-agent/actions/workflows/release.yml">
-        <img src="https://github.com/rennf93/guard-agent/actions/workflows/release.yml/badge.svg" alt="Release">
+    <a href="https://github.com/Guard-Core/guard-agent/actions/workflows/release.yml">
+        <img src="https://github.com/Guard-Core/guard-agent/actions/workflows/release.yml/badge.svg" alt="Release">
     </a>
     <a href="https://opensource.org/licenses/MIT">
         <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
     </a>
-    <a href="https://github.com/rennf93/guard-agent/actions/workflows/ci.yml">
-        <img src="https://github.com/rennf93/guard-agent/actions/workflows/ci.yml/badge.svg" alt="CI">
+    <a href="https://github.com/Guard-Core/guard-agent/actions/workflows/ci.yml">
+        <img src="https://github.com/Guard-Core/guard-agent/actions/workflows/ci.yml/badge.svg" alt="CI">
     </a>
-    <a href="https://github.com/rennf93/guard-agent/actions/workflows/code-ql.yml">
-        <img src="https://github.com/rennf93/guard-agent/actions/workflows/code-ql.yml/badge.svg" alt="CodeQL">
+    <a href="https://github.com/Guard-Core/guard-agent/actions/workflows/code-ql.yml">
+        <img src="https://github.com/Guard-Core/guard-agent/actions/workflows/code-ql.yml/badge.svg" alt="CodeQL">
     </a>
 </p>
 
 <p align="center">
-    <a href="https://github.com/rennf93/guard-agent/actions/workflows/pages/pages-build-deployment">
-        <img src="https://github.com/rennf93/guard-agent/actions/workflows/pages/pages-build-deployment/badge.svg?branch=gh-pages" alt="PagesBuildDeployment">
+    <a href="https://github.com/Guard-Core/guard-agent/actions/workflows/pages/pages-build-deployment">
+        <img src="https://github.com/Guard-Core/guard-agent/actions/workflows/pages/pages-build-deployment/badge.svg?branch=gh-pages" alt="PagesBuildDeployment">
     </a>
-    <a href="https://github.com/rennf93/guard-agent/actions/workflows/docs.yml">
-        <img src="https://github.com/rennf93/guard-agent/actions/workflows/docs.yml/badge.svg" alt="DocsUpdate">
+    <a href="https://github.com/Guard-Core/guard-agent/actions/workflows/docs.yml">
+        <img src="https://github.com/Guard-Core/guard-agent/actions/workflows/docs.yml/badge.svg" alt="DocsUpdate">
     </a>
-    <img src="https://img.shields.io/github/last-commit/rennf93/guard-agent?style=flat&amp;logo=git&amp;logoColor=white&amp;color=0080ff" alt="last-commit">
+    <a href="https://guard-core.github.io/guard-agent/latest/">
+        <img src="https://img.shields.io/badge/docs-latest-0080ff?style=flat&amp;logo=readthedocs&amp;logoColor=white" alt="Docs">
+    </a>
+    <img src="https://img.shields.io/github/last-commit/Guard-Core/guard-agent?style=flat&amp;logo=git&amp;logoColor=white&amp;color=0080ff" alt="last-commit">
 </p>
 
 <p align="center">
@@ -195,7 +198,7 @@ app.add_middleware(SecurityMiddleware, config=config)
 ### Advanced Usage Pattern
 
 !!! warning "Do not use this pattern with fastapi-guard"
-    The snippet below uses `guard_agent()` directly. If your app already uses `fastapi-guard`'s `SecurityMiddleware`, **do not** also call `guard_agent()` from your module-level code. The factory dispatches to `SyncGuardAgentHandler` when called from sync context (module load) and `GuardAgentHandler` when called from async context (the middleware's init) — they are **separate singletons**, and only the middleware's instance receives the telemetry stream. For fastapi-guard users, configure `agent_*` fields on `SecurityConfig` instead. See the [fastapi-guard Integration Guide](https://rennf93.github.io/fastapi-guard/latest/tutorial/integration/).
+    The snippet below uses `guard_agent()` directly. If your app already uses `fastapi-guard`'s `SecurityMiddleware`, **do not** also call `guard_agent()` from your module-level code. The factory dispatches to `SyncGuardAgentHandler` when called from sync context (module load) and `GuardAgentHandler` when called from async context (the middleware's init) — they are **separate singletons**, and only the middleware's instance receives the telemetry stream. For fastapi-guard users, configure `agent_*` fields on `SecurityConfig` instead. See the [fastapi-guard Integration Guide](https://guard-core.github.io/fastapi-guard/latest/tutorial/integration/).
 
 For specialized use cases that *don't* go through a framework adapter — custom event reporting in a worker, direct agent embedding in a non-adapter system, or sync-only frameworks (Flask, Django) integrated with `SyncGuardAgentHandler`:
 

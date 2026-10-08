@@ -1,0 +1,57 @@
+name: Publish Containerized Demo
+
+on:
+  release:
+    types: [created]
+  push:
+    branches:
+      - master
+    paths:
+      - 'examples/**'
+      - 'guard_agent/**'
+      - 'pyproject.toml'
+      - '.github/workflows/container-release.yml'
+  workflow_dispatch:
+
+jobs:
+  publish-container:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set version tag
+        id: set_version
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "VERSION=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+            echo "IS_RELEASE=true" >> $GITHUB_ENV
+          else
+            echo "VERSION=latest" >> $GITHUB_ENV
+            echo "IS_RELEASE=false" >> $GITHUB_ENV
+          fi
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        run: |
+          docker build -f examples/demo_app/Dockerfile -t guard-agent-demo .
+
+      - name: Tag and Push to GHCR
+        run: |
+          docker tag guard-agent-demo ghcr.io/guard-core/guard-agent:latest
+          docker push ghcr.io/guard-core/guard-agent:latest
+
+          if [[ "${{ env.IS_RELEASE }}" == "true" ]]; then
+            docker tag guard-agent-demo ghcr.io/guard-core/guard-agent:${{ env.VERSION }}
+            docker push ghcr.io/guard-core/guard-agent:${{ env.VERSION }}
+          fi

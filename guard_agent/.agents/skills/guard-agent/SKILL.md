@@ -101,10 +101,10 @@ See [the transport reference](references/transport.md) for the exact return sema
 
 ## Related Projects
 
-* [guard-core](https://github.com/rennf93/guard-core): framework-agnostic security engine whose adapters ship telemetry through this agent.
-* [fastapi-guard](https://github.com/rennf93/fastapi-guard): FastAPI/Starlette adapter.
-* [flaskapi-guard](https://github.com/rennf93/flaskapi-guard): Flask extension adapter.
-* [djapi-guard](https://github.com/rennf93/djapi-guard): Django middleware adapter.
-* [tornadoapi-guard](https://github.com/rennf93/tornadoapi-guard): Tornado handler/middleware adapter.
-* [guard-core-mcp](https://github.com/rennf93/guard-core-mcp): MCP server for config validation and docs search.
-* [guard-core-app](https://github.com/rennf93/guard-core-app): SaaS platform this agent reports to.
+* [guard-core](https://github.com/Guard-Core/guard-core): framework-agnostic security engine whose adapters ship telemetry through this agent.
+* [fastapi-guard](https://github.com/Guard-Core/fastapi-guard): FastAPI/Starlette adapter.
+* [flaskapi-guard](https://github.com/Guard-Core/flaskapi-guard): Flask extension adapter.
+* [djapi-guard](https://github.com/Guard-Core/djapi-guard): Django middleware adapter.
+* [tornadoapi-guard](https://github.com/Guard-Core/tornadoapi-guard): Tornado handler/middleware adapter.
+* [guard-core-mcp](https://github.com/Guard-Core/guard-core-mcp): MCP server for config validation and docs search.
+* [guard-core-app](https://github.com/Guard-Core/guard-core-app): SaaS platform this agent reports to.

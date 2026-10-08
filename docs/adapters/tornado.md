@@ -1,6 +1,6 @@
 # Tornado Adapter — `tornadoapi-guard`
 
-Guard Agent integrates with Tornado through the [`tornadoapi-guard`](https://github.com/rennf93/tornadoapi-guard) middleware. Because Tornado is fully async, the agent's lifecycle is driven by `await security_middleware.initialize()` (starts the agent) and `await security_middleware.reset()` (stops it).
+Guard Agent integrates with Tornado through the [`tornadoapi-guard`](https://github.com/Guard-Core/tornadoapi-guard) middleware. Because Tornado is fully async, the agent's lifecycle is driven by `await security_middleware.initialize()` (starts the agent) and `await security_middleware.reset()` (stops it).
 
 !!! warning "Adapter not yet on PyPI"
     `tornadoapi-guard` 1.0.0 has not been published to PyPI at the time of writing. Install from source during the pre-release window, or wait for the first published release.
@@ -8,19 +8,19 @@ Guard Agent integrates with Tornado through the [`tornadoapi-guard`](https://git
 ## Install (from source, pre-release)
 
 ```bash
-uv pip install "git+https://github.com/rennf93/tornadoapi-guard.git"
+uv pip install "git+https://github.com/Guard-Core/tornadoapi-guard.git"
 uv add guard-agent
 ```
 
 Alternatives:
 
 ```bash
-poetry add "git+https://github.com/rennf93/tornadoapi-guard.git"
+poetry add "git+https://github.com/Guard-Core/tornadoapi-guard.git"
 poetry add guard-agent
 ```
 
 ```bash
-pip install "git+https://github.com/rennf93/tornadoapi-guard.git"
+pip install "git+https://github.com/Guard-Core/tornadoapi-guard.git"
 pip install guard-agent
 ```
 
@@ -111,4 +111,4 @@ if __name__ == "__main__":
 
 ## Related
 
-- [`tornadoapi-guard` on GitHub](https://github.com/rennf93/tornadoapi-guard)
+- [`tornadoapi-guard` on GitHub](https://github.com/Guard-Core/tornadoapi-guard)

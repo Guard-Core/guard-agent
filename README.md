@@ -1,6 +1,6 @@
 <p align="center">
-    <a href="https://rennf93.github.io/guard-agent/latest/">
-        <img src="https://rennf93.github.io/guard-agent/latest/assets/guard_agent_legend.svg" alt="Guard Agent">
+    <a href="https://guard-core.github.io/guard-agent/latest/">
+        <img src="https://guard-core.github.io/guard-agent/latest/assets/guard_agent_legend.svg" alt="Guard Agent">
     </a>
 </p>
 
@@ -14,28 +14,31 @@
     <a href="https://badge.fury.io/py/guard-agent">
         <img src="https://badge.fury.io/py/guard-agent.svg?cache=none&icon=si%3Apython&icon_color=%23008cb4" alt="PyPiVersion">
     </a>
-    <a href="https://github.com/rennf93/guard-agent/actions/workflows/release.yml">
-        <img src="https://github.com/rennf93/guard-agent/actions/workflows/release.yml/badge.svg" alt="Release">
+    <a href="https://github.com/Guard-Core/guard-agent/actions/workflows/release.yml">
+        <img src="https://github.com/Guard-Core/guard-agent/actions/workflows/release.yml/badge.svg" alt="Release">
     </a>
     <a href="https://opensource.org/licenses/MIT">
         <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
     </a>
-    <a href="https://github.com/rennf93/guard-agent/actions/workflows/ci.yml">
-        <img src="https://github.com/rennf93/guard-agent/actions/workflows/ci.yml/badge.svg" alt="CI">
+    <a href="https://github.com/Guard-Core/guard-agent/actions/workflows/ci.yml">
+        <img src="https://github.com/Guard-Core/guard-agent/actions/workflows/ci.yml/badge.svg" alt="CI">
     </a>
-    <a href="https://github.com/rennf93/guard-agent/actions/workflows/code-ql.yml">
-        <img src="https://github.com/rennf93/guard-agent/actions/workflows/code-ql.yml/badge.svg" alt="CodeQL">
+    <a href="https://github.com/Guard-Core/guard-agent/actions/workflows/code-ql.yml">
+        <img src="https://github.com/Guard-Core/guard-agent/actions/workflows/code-ql.yml/badge.svg" alt="CodeQL">
     </a>
 </p>
 
 <p align="center">
-    <a href="https://github.com/rennf93/guard-agent/actions/workflows/pages/pages-build-deployment">
-        <img src="https://github.com/rennf93/guard-agent/actions/workflows/pages/pages-build-deployment/badge.svg?branch=gh-pages" alt="PagesBuildDeployment">
+    <a href="https://github.com/Guard-Core/guard-agent/actions/workflows/pages/pages-build-deployment">
+        <img src="https://github.com/Guard-Core/guard-agent/actions/workflows/pages/pages-build-deployment/badge.svg?branch=gh-pages" alt="PagesBuildDeployment">
     </a>
-    <a href="https://github.com/rennf93/guard-agent/actions/workflows/docs.yml">
-        <img src="https://github.com/rennf93/guard-agent/actions/workflows/docs.yml/badge.svg" alt="DocsUpdate">
+    <a href="https://github.com/Guard-Core/guard-agent/actions/workflows/docs.yml">
+        <img src="https://github.com/Guard-Core/guard-agent/actions/workflows/docs.yml/badge.svg" alt="DocsUpdate">
     </a>
-    <img src="https://img.shields.io/github/last-commit/rennf93/guard-agent?style=flat&amp;logo=git&amp;logoColor=white&amp;color=0080ff" alt="last-commit">
+    <a href="https://guard-core.github.io/guard-agent/latest/">
+        <img src="https://img.shields.io/badge/docs-latest-0080ff?style=flat&amp;logo=readthedocs&amp;logoColor=white" alt="Docs">
+    </a>
+    <img src="https://img.shields.io/github/last-commit/Guard-Core/guard-agent?style=flat&amp;logo=git&amp;logoColor=white&amp;color=0080ff" alt="last-commit">
 </p>
 
 <p align="center">
@@ -48,7 +51,7 @@
 
 <p align="center">
   <a href="https://guard-core.com">Website</a> &middot;
-  <a href="https://rennf93.github.io/guard-agent/latest/">Docs</a> &middot;
+  <a href="https://guard-core.github.io/guard-agent/latest/">Docs</a> &middot;
   <a href="https://playground.guard-core.com">Playground</a> &middot;
   <a href="https://app.guard-core.com">Dashboard</a> &middot;
   <a href="https://discord.gg/ZW7ZJbjMkK">Discord</a>
@@ -69,7 +72,7 @@ Documentation & Platform
 ========================
 
 - 🌐 **[guard-core.com](https://guard-core.com)** — marketing site & product overview
-- 📚 **[Documentation](https://rennf93.github.io/guard-agent/latest/)** — full technical documentation
+- 📚 **[Documentation](https://guard-core.github.io/guard-agent/latest/)** — full technical documentation
 - 🎮 **[Playground](https://playground.guard-core.com)** — try the Guard stack in-browser, no install required
 - 📊 **[Dashboard](https://app.guard-core.com)** — real-time security events, metrics, and dynamic rules for your projects
 - 💬 **[Discord](https://discord.gg/ZW7ZJbjMkK)** — community & maintainer support
@@ -85,24 +88,24 @@ Guard Agent is the Python telemetry agent for the Guard ecosystem. It pairs with
 
 | Package | Role | PyPI |
 |---|---|---|
-| [guard-core](https://github.com/rennf93/guard-core) | Framework-agnostic security engine | [![PyPI](https://img.shields.io/pypi/v/guard-core)](https://pypi.org/project/guard-core/) |
-| [guard-agent](https://github.com/rennf93/guard-agent) | Telemetry agent (this package) | [![PyPI](https://img.shields.io/pypi/v/guard-agent)](https://pypi.org/project/guard-agent/) |
-| [fastapi-guard](https://github.com/rennf93/fastapi-guard) | FastAPI / Starlette adapter | [![PyPI](https://img.shields.io/pypi/v/fastapi-guard)](https://pypi.org/project/fastapi-guard/) |
-| [flaskapi-guard](https://github.com/rennf93/flaskapi-guard) | Flask adapter | [![PyPI](https://img.shields.io/pypi/v/flaskapi-guard)](https://pypi.org/project/flaskapi-guard/) |
-| [djapi-guard](https://github.com/rennf93/djapi-guard) | Django adapter | [![PyPI](https://img.shields.io/pypi/v/djapi-guard)](https://pypi.org/project/djapi-guard/) |
-| [tornadoapi-guard](https://github.com/rennf93/tornadoapi-guard) | Tornado adapter | [![PyPI](https://img.shields.io/pypi/v/tornadoapi-guard)](https://pypi.org/project/tornadoapi-guard/) |
+| [guard-core](https://github.com/Guard-Core/guard-core) | Framework-agnostic security engine | [![PyPI](https://img.shields.io/pypi/v/guard-core)](https://pypi.org/project/guard-core/) |
+| [guard-agent](https://github.com/Guard-Core/guard-agent) | Telemetry agent (this package) | [![PyPI](https://img.shields.io/pypi/v/guard-agent)](https://pypi.org/project/guard-agent/) |
+| [fastapi-guard](https://github.com/Guard-Core/fastapi-guard) | FastAPI / Starlette adapter | [![PyPI](https://img.shields.io/pypi/v/fastapi-guard)](https://pypi.org/project/fastapi-guard/) |
+| [flaskapi-guard](https://github.com/Guard-Core/flaskapi-guard) | Flask adapter | [![PyPI](https://img.shields.io/pypi/v/flaskapi-guard)](https://pypi.org/project/flaskapi-guard/) |
+| [djapi-guard](https://github.com/Guard-Core/djapi-guard) | Django adapter | [![PyPI](https://img.shields.io/pypi/v/djapi-guard)](https://pypi.org/project/djapi-guard/) |
+| [tornadoapi-guard](https://github.com/Guard-Core/tornadoapi-guard) | Tornado adapter | [![PyPI](https://img.shields.io/pypi/v/tornadoapi-guard)](https://pypi.org/project/tornadoapi-guard/) |
 
 ### TypeScript / JavaScript
 
-Published under the [`@guardcore`](https://www.npmjs.com/org/guardcore) npm scope. Source in the [guard-core-ts](https://github.com/rennf93/guard-core-ts) monorepo. **Production-ready.**
+Published under the [`@guardcore`](https://www.npmjs.com/org/guardcore) npm scope. Source in the [guard-core-ts](https://github.com/Guard-Core/guard-core-ts) monorepo. **Production-ready.**
 
 | Package | Role | npm |
 |---|---|---|
-| [@guardcore/core](https://github.com/rennf93/guard-core-ts/tree/master/packages/core) | Core engine | [![npm](https://img.shields.io/npm/v/%40guardcore%2Fcore)](https://www.npmjs.com/package/@guardcore/core) |
-| [@guardcore/express](https://github.com/rennf93/guard-core-ts/tree/master/packages/express) | Express adapter | [![npm](https://img.shields.io/npm/v/%40guardcore%2Fexpress)](https://www.npmjs.com/package/@guardcore/express) |
-| [@guardcore/nestjs](https://github.com/rennf93/guard-core-ts/tree/master/packages/nestjs) | NestJS adapter | [![npm](https://img.shields.io/npm/v/%40guardcore%2Fnestjs)](https://www.npmjs.com/package/@guardcore/nestjs) |
-| [@guardcore/fastify](https://github.com/rennf93/guard-core-ts/tree/master/packages/fastify) | Fastify adapter | [![npm](https://img.shields.io/npm/v/%40guardcore%2Ffastify)](https://www.npmjs.com/package/@guardcore/fastify) |
-| [@guardcore/hono](https://github.com/rennf93/guard-core-ts/tree/master/packages/hono) | Hono adapter | [![npm](https://img.shields.io/npm/v/%40guardcore%2Fhono)](https://www.npmjs.com/package/@guardcore/hono) |
+| [@guardcore/core](https://github.com/Guard-Core/guard-core-ts/tree/master/packages/core) | Core engine | [![npm](https://img.shields.io/npm/v/%40guardcore%2Fcore)](https://www.npmjs.com/package/@guardcore/core) |
+| [@guardcore/express](https://github.com/Guard-Core/guard-core-ts/tree/master/packages/express) | Express adapter | [![npm](https://img.shields.io/npm/v/%40guardcore%2Fexpress)](https://www.npmjs.com/package/@guardcore/express) |
+| [@guardcore/nestjs](https://github.com/Guard-Core/guard-core-ts/tree/master/packages/nestjs) | NestJS adapter | [![npm](https://img.shields.io/npm/v/%40guardcore%2Fnestjs)](https://www.npmjs.com/package/@guardcore/nestjs) |
+| [@guardcore/fastify](https://github.com/Guard-Core/guard-core-ts/tree/master/packages/fastify) | Fastify adapter | [![npm](https://img.shields.io/npm/v/%40guardcore%2Ffastify)](https://www.npmjs.com/package/@guardcore/fastify) |
+| [@guardcore/hono](https://github.com/Guard-Core/guard-core-ts/tree/master/packages/hono) | Hono adapter | [![npm](https://img.shields.io/npm/v/%40guardcore%2Fhono)](https://www.npmjs.com/package/@guardcore/hono) |
 
 ### Rust
 
@@ -110,17 +113,17 @@ Published on crates.io. **🚧 Placeholder crates — implementation in progress
 
 | Package | Role | crates.io |
 |---|---|---|
-| [guard-core](https://github.com/rennf93/guard-core-rs) | Core engine | [![crates.io](https://img.shields.io/crates/v/guard-core)](https://crates.io/crates/guard-core) |
-| [actix-guard-rs](https://github.com/rennf93/actix-guard-rs) | Actix adapter | [![crates.io](https://img.shields.io/crates/v/actix-guard-rs)](https://crates.io/crates/actix-guard-rs) |
-| [axum-guard-rs](https://github.com/rennf93/axum-guard-rs) | Axum adapter | [![crates.io](https://img.shields.io/crates/v/axum-guard-rs)](https://crates.io/crates/axum-guard-rs) |
-| [rocket-guard-rs](https://github.com/rennf93/rocket-guard-rs) | Rocket adapter | [![crates.io](https://img.shields.io/crates/v/rocket-guard-rs)](https://crates.io/crates/rocket-guard-rs) |
-| [tower-guard-rs](https://github.com/rennf93/tower-guard-rs) | Tower adapter | [![crates.io](https://img.shields.io/crates/v/tower-guard-rs)](https://crates.io/crates/tower-guard-rs) |
+| [guard-core](https://github.com/Guard-Core/guard-core-rs) | Core engine | [![crates.io](https://img.shields.io/crates/v/guard-core)](https://crates.io/crates/guard-core) |
+| [actix-guard-rs](https://github.com/Guard-Core/actix-guard-rs) | Actix adapter | [![crates.io](https://img.shields.io/crates/v/actix-guard-rs)](https://crates.io/crates/actix-guard-rs) |
+| [axum-guard-rs](https://github.com/Guard-Core/axum-guard-rs) | Axum adapter | [![crates.io](https://img.shields.io/crates/v/axum-guard-rs)](https://crates.io/crates/axum-guard-rs) |
+| [rocket-guard-rs](https://github.com/Guard-Core/rocket-guard-rs) | Rocket adapter | [![crates.io](https://img.shields.io/crates/v/rocket-guard-rs)](https://crates.io/crates/rocket-guard-rs) |
+| [tower-guard-rs](https://github.com/Guard-Core/tower-guard-rs) | Tower adapter | [![crates.io](https://img.shields.io/crates/v/tower-guard-rs)](https://crates.io/crates/tower-guard-rs) |
 
 ### AI Coding Agents
 
 | Package | Role | PyPI |
 |---|---|---|
-| [guard-core-mcp](https://github.com/rennf93/guard-core-mcp) | MCP server — config validation, docs search, detection sandbox | [![PyPI](https://img.shields.io/pypi/v/guard-core-mcp)](https://pypi.org/project/guard-core-mcp/) |
+| [guard-core-mcp](https://github.com/Guard-Core/guard-core-mcp) | MCP server — config validation, docs search, detection sandbox | [![PyPI](https://img.shields.io/pypi/v/guard-core-mcp)](https://pypi.org/project/guard-core-mcp/) |
 
 An MCP server that answers questions about Guard Agent from the version **installed in your project**, rather than from a model's memory of it. It validates a config against the real `AgentConfig` model — catching typos pydantic would otherwise ignore silently — looks up any field's type, default and description, and searches the bundled docs for all three Python packages.
 
@@ -222,7 +225,7 @@ async def root() -> dict[str, str]:
     return {"message": "Hello World"}
 ```
 
-Flask is synchronous and handles start/stop internally; Tornado uses `await security_middleware.initialize()` / `reset()`; Django wires the middleware via settings. See [docs/adapters](https://rennf93.github.io/guard-agent/latest/adapters/fastapi/) for the canonical pattern per framework.
+Flask is synchronous and handles start/stop internally; Tornado uses `await security_middleware.initialize()` / `reset()`; Django wires the middleware via settings. See [docs/adapters](https://guard-core.github.io/guard-agent/latest/adapters/fastapi/) for the canonical pattern per framework.
 
 With `enable_agent=True`, the agent automatically:
 
@@ -334,7 +337,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 Author
 ------
 
-Renzo Franceschini - [rennf93@users.noreply.github.com](mailto:rennf93@users.noreply.github.com)
+Renzo Franceschini - [contact@guard-core.com](mailto:contact@guard-core.com)
 
 ---
 

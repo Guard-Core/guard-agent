@@ -3,7 +3,7 @@ name = "fastapi_guard_agent"
 version = "1.3.0"
 description = "Deprecated alias — the package has been renamed to guard-agent. Installing fastapi-guard-agent will transitively install guard-agent."
 authors = [
-    {name = "Renzo Franceschini", email = "rennf93@users.noreply.github.com"}
+    {name = "Renzo Franceschini", email = "rennf93@guard-core.com"}
 ]
 readme = "README.md"
 license = {text = "MIT"}
@@ -29,7 +29,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://guard-core.com"
 "Renamed To" = "https://pypi.org/project/guard-agent/"
-Repository = "https://github.com/rennf93/guard-agent"
+Repository = "https://github.com/Guard-Core/guard-agent"
 "Cloud Dashboard" = "https://app.guard-core.com"
 "Live Playground" = "https://playground.guard-core.com"
 

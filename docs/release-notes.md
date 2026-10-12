@@ -21,6 +21,16 @@ The parity release: agent feature surface locked across all four language ports 
 
 ___
 
+v3.2.3 (2026-10-12)
+-------------------
+
+Version reporting fix
+---------------------
+
+The 3.2.2 wheel shipped `guard_agent/_version.py` at 3.2.1, so 3.2.2 installs reported 3.2.1 to the Guard SaaS. Every version location now reads 3.2.3. Lockstep release with the agent family at 3.2.3.
+
+___
+
 v3.2.2 (2026-10-08)
 -------------------
 

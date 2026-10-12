@@ -121,7 +121,7 @@ class TestPayloadEncryptor:
 
         # Tamper with the encrypted data
         encrypted_bytes = base64.urlsafe_b64decode(encrypted.encode())
-        tampered = encrypted_bytes[:-1] + b"X"  # Change last byte
+        tampered = encrypted_bytes[:-1] + bytes([encrypted_bytes[-1] ^ 0xFF])
         tampered_str = base64.urlsafe_b64encode(tampered).decode()
 
         with pytest.raises(EncryptionError, match="Invalid or tampered payload"):

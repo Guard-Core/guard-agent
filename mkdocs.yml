@@ -1,6 +1,6 @@
 site_name: Guard Agent
 site_description: Framework-agnostic telemetry and monitoring agent for the Guard security ecosystem (fastapi-guard, flaskapi-guard, djangoapi-guard, tornadoapi-guard).
-site_url: https://guard-core.github.io/guard-agent/latest/
+site_url: https://guard-core.github.io/guard-agent/
 repo_name: Guard-Core/guard-agent
 repo_url: https://github.com/Guard-Core/guard-agent
 edit_uri: edit/master/docs/

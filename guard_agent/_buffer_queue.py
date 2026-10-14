@@ -1,14 +1,32 @@
 import asyncio
 import time
+from collections.abc import Callable, Coroutine
+from typing import Any, TypeVar
 
 from guard_agent._buffer_lifecycle import BufferLifecycleMixin
 from guard_agent._buffer_overflow import BLOCK_POLICY_POLL_INTERVAL, BufferOverflowMixin
+from guard_agent._buffer_redis import _PERSISTING
 from guard_agent.models import SecurityEvent, SecurityMetric
+
+T = TypeVar("T")
 
 
 class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
     events_flushed: int
     metrics_flushed: int
+
+    def _spawn_persist(
+        self, persist: Callable[[T], Coroutine[Any, Any, None]], item: T
+    ) -> None:
+        """Run a Redis persist as a tracked background task so the request
+        path never waits on Redis; stop_auto_flush drains it. Nothing is
+        spawned without a Redis handler, or while a persist is in flight in
+        this context (a Redis failure reporting an event must not recurse)."""
+        if not self.redis_handler or _PERSISTING.get():
+            return
+        task = asyncio.create_task(persist(item))
+        self._inflight_persist_tasks.add(task)
+        task.add_done_callback(self._inflight_persist_tasks.discard)
 
     async def add_event(self, event: SecurityEvent) -> None:
         """Add security event to buffer honoring the configured overflow
@@ -23,15 +41,8 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
             while True:
                 must_wait = await self._resolve_event_overflow()
                 if not must_wait:
-                    try:
-                        self.event_buffer.append(event)
-                        self.events_buffered += 1
-                        if self.redis_handler:
-                            key = await self._persist_event_to_redis(event)
-                            if key is not None:
-                                self._event_redis_keys[id(event)] = key
-                    except Exception as e:
-                        self.logger.error(f"Failed to buffer event: {str(e)}")
+                    self.event_buffer.append(event)
+                    self.events_buffered += 1
                     break
                 try:
                     await asyncio.wait_for(
@@ -39,6 +50,8 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
                     )
                 except asyncio.TimeoutError:
                     pass
+
+        self._spawn_persist(self._persist_and_track_event, event)
 
         if (
             len(self.event_buffer)
@@ -58,15 +71,8 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
             while True:
                 must_wait = await self._resolve_metric_overflow()
                 if not must_wait:
-                    try:
-                        self.metric_buffer.append(metric)
-                        self.metrics_buffered += 1
-                        if self.redis_handler:
-                            key = await self._persist_metric_to_redis(metric)
-                            if key is not None:
-                                self._metric_redis_keys[id(metric)] = key
-                    except Exception as e:
-                        self.logger.error(f"Failed to buffer metric: {str(e)}")
+                    self.metric_buffer.append(metric)
+                    self.metrics_buffered += 1
                     break
                 try:
                     await asyncio.wait_for(
@@ -74,6 +80,8 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
                     )
                 except asyncio.TimeoutError:
                     pass
+
+        self._spawn_persist(self._persist_and_track_metric, metric)
 
         if (
             len(self.metric_buffer)

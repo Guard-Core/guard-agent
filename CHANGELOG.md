@@ -3,6 +3,16 @@ Release Notes
 
 ___
 
+v3.2.4 (2026-10-15)
+-------------------
+
+Redis persistence off the request path
+--------------------------------------
+
+Persisting events and metrics to Redis no longer happens under the buffer lock. The in-memory append stays on the request path and the Redis write runs as a tracked background task that `stop_auto_flush` drains, so a slow or failing Redis no longer delays requests. A Redis failure can no longer re-enter persistence, which removes a deadlock that blocked every later `send_event` once Redis started failing. In-flight writes are capped at `buffer_size`: past the cap an item stays in memory only, counts as a persist failure, and one warning is logged per backlog episode. Items flushed or evicted before their write starts are never written, and a failed write no longer leaves tracking state behind. Unpadded base64url project keys are accepted, and the startup encryption error now includes the underlying cause. Lockstep release with the agent family at 3.2.4.
+
+___
+
 v3.2.3 (2026-10-12)
 -------------------
 

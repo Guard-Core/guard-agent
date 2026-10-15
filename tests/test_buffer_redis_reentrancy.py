@@ -314,3 +314,21 @@ async def test_metric_requeue_during_persist_tracks_key() -> None:
     redis.release.set()
     await _settle(buf)
     assert list(buf._metric_redis_keys.values()) == list(redis.store)
+
+
+@pytest.mark.asyncio
+async def test_failed_persists_leave_no_pending_ids() -> None:
+    buf = _buffer()
+
+    class Failing(GatedRedis):
+        async def set_key(self, *a: Any, **k: Any) -> bool:
+            raise ConnectionError("down")
+
+    await buf.initialize_redis(Failing())  # type: ignore[arg-type]
+    for _ in range(3):
+        await buf.add_event(_event())
+        await buf.add_metric(_metric())
+    await _settle(buf)
+    assert buf.redis_persist_failures == 6
+    assert buf._pending_event_persists == {}
+    assert buf._pending_metric_persists == {}

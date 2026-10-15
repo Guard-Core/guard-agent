@@ -107,12 +107,13 @@ class BufferRedisMixin:
             key = await self._persist_event_to_redis(event)
         except Exception as e:
             self.logger.error(f"Failed to buffer event: {str(e)}")
-            return
+            key = None
         finally:
             _PERSISTING.reset(token)
+            still_buffered = self._pending_event_persists.pop(id(event), False)
         if key is None:
             return
-        if self._pending_event_persists.pop(id(event), False):
+        if still_buffered:
             self._event_redis_keys[id(event)] = key
         else:
             await self.confirm_event_redis_keys([key])
@@ -127,12 +128,13 @@ class BufferRedisMixin:
             key = await self._persist_metric_to_redis(metric)
         except Exception as e:
             self.logger.error(f"Failed to buffer metric: {str(e)}")
-            return
+            key = None
         finally:
             _PERSISTING.reset(token)
+            still_buffered = self._pending_metric_persists.pop(id(metric), False)
         if key is None:
             return
-        if self._pending_metric_persists.pop(id(metric), False):
+        if still_buffered:
             self._metric_redis_keys[id(metric)] = key
         else:
             await self.confirm_metric_redis_keys([key])

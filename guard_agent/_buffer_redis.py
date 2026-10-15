@@ -94,8 +94,11 @@ class BufferRedisMixin:
         Skipped while a persist is in flight in this context, so a Redis
         failure that emits an event cannot recurse into Redis. If the event
         left the buffer meanwhile (flushed), the new key is deleted instead
-        of tracked, so it neither orphans nor replays after a restart.
+        of tracked, so it neither orphans nor replays after a restart. An
+        event already gone before the task starts is never written.
         """
+        if not any(e is event for e in reversed(self.event_buffer)):
+            return
         token = _PERSISTING.set(True)
         try:
             key = await self._persist_event_to_redis(event)
@@ -113,6 +116,8 @@ class BufferRedisMixin:
 
     async def _persist_and_track_metric(self, metric: SecurityMetric) -> None:
         """Metric twin of _persist_and_track_event."""
+        if not any(m is metric for m in reversed(self.metric_buffer)):
+            return
         token = _PERSISTING.set(True)
         try:
             key = await self._persist_metric_to_redis(metric)

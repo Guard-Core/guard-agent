@@ -14,6 +14,8 @@ T = TypeVar("T")
 class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
     events_flushed: int
     metrics_flushed: int
+    redis_persist_failures: int
+    _persist_overflow_logged: bool
 
     def _spawn_persist(
         self, persist: Callable[[T], Coroutine[Any, Any, None]], item: T
@@ -24,9 +26,24 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
         this context (a Redis failure reporting an event must not recurse)."""
         if not self.redis_handler or _PERSISTING.get():
             return
+        if len(self._inflight_persist_tasks) >= self.config.buffer_size:
+            self.redis_persist_failures += 1
+            if not self._persist_overflow_logged:
+                self._persist_overflow_logged = True
+                self.logger.warning(
+                    "Redis persist backlog at buffer_size="
+                    f"{self.config.buffer_size}; buffering in memory only "
+                    "until it drains"
+                )
+            return
         task = asyncio.create_task(persist(item))
         self._inflight_persist_tasks.add(task)
-        task.add_done_callback(self._inflight_persist_tasks.discard)
+        task.add_done_callback(self._persist_done)
+
+    def _persist_done(self, task: "asyncio.Task[None]") -> None:
+        self._inflight_persist_tasks.discard(task)
+        if not self._inflight_persist_tasks:
+            self._persist_overflow_logged = False
 
     async def add_event(self, event: SecurityEvent) -> None:
         """Add security event to buffer honoring the configured overflow

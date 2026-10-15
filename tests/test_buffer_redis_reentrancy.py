@@ -239,3 +239,43 @@ async def test_no_persist_task_without_redis_handler() -> None:
     await buf.add_metric(_metric())
     assert not buf._inflight_persist_tasks
     assert len(buf.event_buffer) == 1 and len(buf.metric_buffer) == 1
+
+
+@pytest.mark.asyncio
+async def test_inflight_persists_capped_and_overflow_counted(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    buf = _buffer(buffer_size=3)
+    redis = GatedRedis()
+    await buf.initialize_redis(redis)  # type: ignore[arg-type]
+    for _ in range(4):
+        await buf.add_event(_event())
+    for _ in range(3):
+        await buf.add_metric(_metric())
+    assert len(buf._inflight_persist_tasks) == 3
+    assert buf.redis_persist_failures == 4
+    assert sum("persist backlog" in r.message for r in caplog.records) == 1
+    redis.release.set()
+    await _settle(buf)
+    assert not buf._inflight_persist_tasks
+    redis.release.clear()
+    for _ in range(4):
+        await buf.add_event(_event())
+    assert sum("persist backlog" in r.message for r in caplog.records) == 2
+    redis.release.set()
+    await _settle(buf)
+
+
+@pytest.mark.asyncio
+async def test_item_gone_before_task_starts_is_never_written() -> None:
+    buf = _buffer()
+    redis = GatedRedis()
+    redis.release.set()
+    await buf.initialize_redis(redis)  # type: ignore[arg-type]
+    await buf.add_event(_event())
+    await buf.add_metric(_metric())
+    buf.event_buffer.clear()
+    buf.metric_buffer.clear()
+    await _settle(buf)
+    assert not redis.entered.is_set()
+    assert redis.store == {}

@@ -31,6 +31,7 @@ class EventBuffer(BufferQueueMixin, BufferProtocol):
         self._running = False
         self._inflight_flush_tasks: set[asyncio.Task[None]] = set()
         self._inflight_persist_tasks: set[asyncio.Task[None]] = set()
+        self._persist_overflow_logged = False
 
         self._event_redis_keys: dict[int, str] = {}
         self._metric_redis_keys: dict[int, str] = {}

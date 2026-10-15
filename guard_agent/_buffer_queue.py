@@ -16,9 +16,14 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
     metrics_flushed: int
     redis_persist_failures: int
     _persist_overflow_logged: bool
+    _pending_event_persists: dict[int, bool]
+    _pending_metric_persists: dict[int, bool]
 
     def _spawn_persist(
-        self, persist: Callable[[T], Coroutine[Any, Any, None]], item: T
+        self,
+        persist: Callable[[T], Coroutine[Any, Any, None]],
+        item: T,
+        pending: dict[int, bool],
     ) -> None:
         """Run a Redis persist as a tracked background task so the request
         path never waits on Redis; stop_auto_flush drains it. Nothing is
@@ -36,6 +41,7 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
                     "until it drains"
                 )
             return
+        pending[id(item)] = True
         task = asyncio.create_task(persist(item))
         self._inflight_persist_tasks.add(task)
         task.add_done_callback(self._persist_done)
@@ -68,7 +74,9 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
                 except asyncio.TimeoutError:
                     pass
 
-        self._spawn_persist(self._persist_and_track_event, event)
+        self._spawn_persist(
+            self._persist_and_track_event, event, self._pending_event_persists
+        )
 
         if (
             len(self.event_buffer)
@@ -98,7 +106,9 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
                 except asyncio.TimeoutError:
                     pass
 
-        self._spawn_persist(self._persist_and_track_metric, metric)
+        self._spawn_persist(
+            self._persist_and_track_metric, metric, self._pending_metric_persists
+        )
 
         if (
             len(self.metric_buffer)
@@ -129,6 +139,9 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
         condition = self._get_event_condition()
         async with condition:
             events = list(self.event_buffer)
+            for item in events:
+                if id(item) in self._pending_event_persists:
+                    self._pending_event_persists[id(item)] = False
             keys = [self._event_redis_keys.pop(id(event), "") for event in events]
             self.event_buffer.clear()
             self.events_flushed += len(events)
@@ -147,6 +160,9 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
         condition = self._get_metric_condition()
         async with condition:
             metrics = list(self.metric_buffer)
+            for item in metrics:
+                if id(item) in self._pending_metric_persists:
+                    self._pending_metric_persists[id(item)] = False
             keys = [self._metric_redis_keys.pop(id(metric), "") for metric in metrics]
             self.metric_buffer.clear()
             self.metrics_flushed += len(metrics)
@@ -171,6 +187,8 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
                     if evicted_key:
                         evicted_keys.append(evicted_key)
                 self.event_buffer.appendleft(event)
+                if id(event) in self._pending_event_persists:
+                    self._pending_event_persists[id(event)] = True
                 if key:
                     self._event_redis_keys[id(event)] = key
         return evicted_keys
@@ -191,6 +209,8 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
                     if evicted_key:
                         evicted_keys.append(evicted_key)
                 self.metric_buffer.appendleft(metric)
+                if id(metric) in self._pending_metric_persists:
+                    self._pending_metric_persists[id(metric)] = True
                 if key:
                     self._metric_redis_keys[id(metric)] = key
         return evicted_keys
@@ -202,12 +222,14 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
         async with event_condition:
             self.event_buffer.clear()
             self._event_redis_keys.clear()
+            self._pending_event_persists.clear()
             event_condition.notify_all()
 
         metric_condition = self._get_metric_condition()
         async with metric_condition:
             self.metric_buffer.clear()
             self._metric_redis_keys.clear()
+            self._pending_metric_persists.clear()
             metric_condition.notify_all()
 
         if self.redis_handler:

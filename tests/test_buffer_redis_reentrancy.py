@@ -274,8 +274,43 @@ async def test_item_gone_before_task_starts_is_never_written() -> None:
     await buf.initialize_redis(redis)  # type: ignore[arg-type]
     await buf.add_event(_event())
     await buf.add_metric(_metric())
-    buf.event_buffer.clear()
-    buf.metric_buffer.clear()
+    await buf.flush_events_with_keys()
+    await buf.flush_metrics_with_keys()
     await _settle(buf)
     assert not redis.entered.is_set()
     assert redis.store == {}
+
+
+@pytest.mark.asyncio
+async def test_overflow_eviction_and_clear_drop_pending_persists() -> None:
+    buf = _buffer(buffer_size=2)
+    redis = GatedRedis()
+    redis.release.set()
+    await buf.initialize_redis(redis)  # type: ignore[arg-type]
+    first = _event()
+    await buf.add_event(first)
+    await buf.add_event(_event())
+    await buf.add_event(_event())
+    assert id(first) not in buf._pending_event_persists
+    await buf.add_metric(_metric())
+    await buf.clear_buffer()
+    assert buf._pending_event_persists == {}
+    assert buf._pending_metric_persists == {}
+    await _settle(buf)
+    assert redis.store == {}
+    assert buf._event_redis_keys == {} and buf._metric_redis_keys == {}
+    assert buf._pending_event_persists == {}
+
+
+@pytest.mark.asyncio
+async def test_metric_requeue_during_persist_tracks_key() -> None:
+    buf = _buffer()
+    redis = GatedRedis()
+    await buf.initialize_redis(redis)  # type: ignore[arg-type]
+    await buf.add_metric(_metric())
+    await asyncio.wait_for(redis.entered.wait(), FAKE_TIMEOUT)
+    metrics, keys = await buf.flush_metrics_with_keys()
+    await buf.requeue_metrics_in_memory(metrics, keys)
+    redis.release.set()
+    await _settle(buf)
+    assert list(buf._metric_redis_keys.values()) == list(redis.store)

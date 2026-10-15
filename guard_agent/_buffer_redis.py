@@ -24,6 +24,8 @@ class BufferRedisMixin:
     redis_persist_failures: int
     _event_redis_keys: dict[int, str]
     _metric_redis_keys: dict[int, str]
+    _pending_event_persists: dict[int, bool]
+    _pending_metric_persists: dict[int, bool]
 
     def _get_event_condition(self) -> asyncio.Condition:
         raise NotImplementedError
@@ -97,7 +99,8 @@ class BufferRedisMixin:
         of tracked, so it neither orphans nor replays after a restart. An
         event already gone before the task starts is never written.
         """
-        if not any(e is event for e in reversed(self.event_buffer)):
+        if not self._pending_event_persists.get(id(event)):
+            self._pending_event_persists.pop(id(event), None)
             return
         token = _PERSISTING.set(True)
         try:
@@ -109,14 +112,15 @@ class BufferRedisMixin:
             _PERSISTING.reset(token)
         if key is None:
             return
-        if any(e is event for e in reversed(self.event_buffer)):
+        if self._pending_event_persists.pop(id(event), False):
             self._event_redis_keys[id(event)] = key
         else:
             await self.confirm_event_redis_keys([key])
 
     async def _persist_and_track_metric(self, metric: SecurityMetric) -> None:
         """Metric twin of _persist_and_track_event."""
-        if not any(m is metric for m in reversed(self.metric_buffer)):
+        if not self._pending_metric_persists.get(id(metric)):
+            self._pending_metric_persists.pop(id(metric), None)
             return
         token = _PERSISTING.set(True)
         try:
@@ -128,7 +132,7 @@ class BufferRedisMixin:
             _PERSISTING.reset(token)
         if key is None:
             return
-        if any(m is metric for m in reversed(self.metric_buffer)):
+        if self._pending_metric_persists.pop(id(metric), False):
             self._metric_redis_keys[id(metric)] = key
         else:
             await self.confirm_metric_redis_keys([key])

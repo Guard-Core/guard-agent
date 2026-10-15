@@ -21,6 +21,16 @@ The parity release: agent feature surface locked across all four language ports 
 
 ___
 
+v3.2.4 (2026-10-15)
+-------------------
+
+Redis persistence off the request path
+--------------------------------------
+
+Persisting events and metrics to Redis no longer happens under the buffer lock. The in-memory append stays on the request path and the Redis write runs as a tracked background task that `stop_auto_flush` drains, so a slow or failing Redis no longer delays requests. A Redis failure can no longer re-enter persistence, which removes a deadlock that blocked every later `send_event` once Redis started failing. In-flight writes are capped at `buffer_size`: past the cap an item stays in memory only, counts as a persist failure, and one warning is logged per backlog episode. Items flushed or evicted before their write starts are never written, and a failed write no longer leaves tracking state behind. Unpadded base64url project keys are accepted, and the startup encryption error now includes the underlying cause. Lockstep release with the agent family at 3.2.4.
+
+___
+
 v3.2.3 (2026-10-12)
 -------------------
 
@@ -44,10 +54,10 @@ ___
 v3.2.1 (2026-10-07)
 -------------------
 
-TITLE (v3.2.1)
-------------
+The lockstep release: version alignment with the engines at 4.3.1 (v3.2.1)
+--------------------------------------------------------------------------
 
-CONTENT
+No agent behavior changes. Shipped so the agents family moves in lockstep with the engines at 4.3.1 while guard-agent-ts carries the js/polynomial-redos fix (linear `stripTrailingSlashes` replacing anchored quantifier regexes in `config.ts`/`transport.ts`, CodeQL HIGH).
 
 ___
 
@@ -72,8 +82,8 @@ ___
 v3.0.2 (2026-09-23)
 -------------------
 
-TITLE (v3.0.2)
-------------
+Payload signatures now cover the uncompressed body (v3.0.2)
+-----------------------------------------------------------
 
 ### Fixed
 

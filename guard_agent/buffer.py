@@ -30,6 +30,10 @@ class EventBuffer(BufferQueueMixin, BufferProtocol):
         self._flush_semaphore: asyncio.Semaphore | None = None
         self._running = False
         self._inflight_flush_tasks: set[asyncio.Task[None]] = set()
+        self._inflight_persist_tasks: set[asyncio.Task[None]] = set()
+        self._persist_overflow_logged = False
+        self._pending_event_persists: dict[int, bool] = {}
+        self._pending_metric_persists: dict[int, bool] = {}
 
         self._event_redis_keys: dict[int, str] = {}
         self._metric_redis_keys: dict[int, str] = {}

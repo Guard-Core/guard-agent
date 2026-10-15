@@ -74,7 +74,8 @@ class TransportLifecycleMixin:
             raise
         except Exception as exc:
             raise EncryptionConfigError(
-                "Encryption round-trip failed at startup; refusing plaintext fallback"
+                "Encryption round-trip failed at startup; refusing plaintext "
+                f"fallback (cause: {exc})"
             ) from exc
 
     async def initialize(self) -> None:

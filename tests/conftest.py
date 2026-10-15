@@ -24,6 +24,7 @@ if not settings.configured:
     django.setup()
 
 from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -116,3 +117,28 @@ def security_metric() -> SecurityMetric:
         metric_type="request_count",
         value=1.0,
     )
+
+
+@pytest.fixture(autouse=True)
+def settle_redis_persists(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Persist is a background task in production; in tests that assert on
+    Redis state right after an add, wait for it. Tests that exercise the
+    background behaviour live in test_buffer_redis_reentrancy.py."""
+    if request.module.__name__.endswith("test_buffer_redis_reentrancy"):
+        return
+    import asyncio
+
+    for name in ("add_event", "add_metric"):
+        original = getattr(EventBuffer, name)
+
+        def make(orig: Any) -> Any:
+            async def wrapper(self: EventBuffer, item: Any) -> None:
+                await orig(self, item)
+                if self._inflight_persist_tasks:
+                    await asyncio.gather(*self._inflight_persist_tasks)
+
+            return wrapper
+
+        monkeypatch.setattr(EventBuffer, name, make(original))

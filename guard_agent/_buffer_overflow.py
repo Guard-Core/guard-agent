@@ -85,24 +85,28 @@ class BufferOverflowMixin(BufferRedisMixin):
         if not self.event_buffer:
             return None
         oldest = self.event_buffer[0]
+        self._pending_event_persists.pop(id(oldest), None)
         return self._event_redis_keys.pop(id(oldest), None)
 
     def _forget_oldest_metric_key(self) -> str | None:
         if not self.metric_buffer:
             return None
         oldest = self.metric_buffer[0]
+        self._pending_metric_persists.pop(id(oldest), None)
         return self._metric_redis_keys.pop(id(oldest), None)
 
     def _forget_newest_event_key(self) -> str | None:
         if not self.event_buffer:
             return None
         newest = self.event_buffer[-1]
+        self._pending_event_persists.pop(id(newest), None)
         return self._event_redis_keys.pop(id(newest), None)
 
     def _forget_newest_metric_key(self) -> str | None:
         if not self.metric_buffer:
             return None
         newest = self.metric_buffer[-1]
+        self._pending_metric_persists.pop(id(newest), None)
         return self._metric_redis_keys.pop(id(newest), None)
 
     def _is_event_buffer_full(self) -> bool:

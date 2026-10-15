@@ -18,6 +18,7 @@ class BufferLifecycleMixin:
     _flush_semaphore: asyncio.Semaphore | None
     _running: bool
     _inflight_flush_tasks: set[asyncio.Task[None]]
+    _inflight_persist_tasks: set[asyncio.Task[None]]
 
     async def start_auto_flush(self) -> None:
         if self._flush_task and not self._flush_task.done():
@@ -41,6 +42,9 @@ class BufferLifecycleMixin:
         if self._inflight_flush_tasks:
             await asyncio.gather(*self._inflight_flush_tasks, return_exceptions=True)
         self._inflight_flush_tasks.clear()
+        if self._inflight_persist_tasks:
+            await asyncio.gather(*self._inflight_persist_tasks, return_exceptions=True)
+        self._inflight_persist_tasks.clear()
         self._flush_semaphore = None
 
     async def stop(self) -> None:

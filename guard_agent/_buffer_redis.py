@@ -1,4 +1,5 @@
 import asyncio
+import contextvars
 import logging
 import time
 import uuid
@@ -7,6 +8,10 @@ from collections import deque
 from guard_agent.models import SecurityEvent, SecurityMetric
 from guard_agent.protocols import RedisHandlerProtocol
 from guard_agent.utils import safe_json_deserialize, safe_json_serialize
+
+_PERSISTING: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "guard_agent_redis_persisting", default=False
+)
 
 
 class BufferRedisMixin:
@@ -19,6 +24,8 @@ class BufferRedisMixin:
     redis_persist_failures: int
     _event_redis_keys: dict[int, str]
     _metric_redis_keys: dict[int, str]
+    _pending_event_persists: dict[int, bool]
+    _pending_metric_persists: dict[int, bool]
 
     def _get_event_condition(self) -> asyncio.Condition:
         raise NotImplementedError
@@ -82,6 +89,55 @@ class BufferRedisMixin:
             self.redis_persist_failures += 1
             self.logger.warning(f"Failed to persist metric to Redis: {str(e)}")
             return None
+
+    async def _persist_and_track_event(self, event: SecurityEvent) -> None:
+        """Persist an already-buffered event, outside the buffer lock.
+
+        Skipped while a persist is in flight in this context, so a Redis
+        failure that emits an event cannot recurse into Redis. If the event
+        left the buffer meanwhile (flushed), the new key is deleted instead
+        of tracked, so it neither orphans nor replays after a restart. An
+        event already gone before the task starts is never written.
+        """
+        if not self._pending_event_persists.get(id(event)):
+            self._pending_event_persists.pop(id(event), None)
+            return
+        token = _PERSISTING.set(True)
+        try:
+            key = await self._persist_event_to_redis(event)
+        except Exception as e:
+            self.logger.error(f"Failed to buffer event: {str(e)}")
+            key = None
+        finally:
+            _PERSISTING.reset(token)
+            still_buffered = self._pending_event_persists.pop(id(event), False)
+        if key is None:
+            return
+        if still_buffered:
+            self._event_redis_keys[id(event)] = key
+        else:
+            await self.confirm_event_redis_keys([key])
+
+    async def _persist_and_track_metric(self, metric: SecurityMetric) -> None:
+        """Metric twin of _persist_and_track_event."""
+        if not self._pending_metric_persists.get(id(metric)):
+            self._pending_metric_persists.pop(id(metric), None)
+            return
+        token = _PERSISTING.set(True)
+        try:
+            key = await self._persist_metric_to_redis(metric)
+        except Exception as e:
+            self.logger.error(f"Failed to buffer metric: {str(e)}")
+            key = None
+        finally:
+            _PERSISTING.reset(token)
+            still_buffered = self._pending_metric_persists.pop(id(metric), False)
+        if key is None:
+            return
+        if still_buffered:
+            self._metric_redis_keys[id(metric)] = key
+        else:
+            await self.confirm_metric_redis_keys([key])
 
     async def _load_from_redis(self) -> None:
         """Load persisted events/metrics from Redis on startup; track keys.

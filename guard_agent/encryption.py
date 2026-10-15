@@ -69,7 +69,8 @@ class PayloadEncryptor:
             raise EncryptionError("Project key cannot be empty")
 
         try:
-            key_bytes = base64.urlsafe_b64decode(project_key.encode())
+            padded = project_key.strip() + "=" * (-len(project_key.strip()) % 4)
+            key_bytes = base64.urlsafe_b64decode(padded.encode())
 
             if len(key_bytes) != self.KEY_SIZE:
                 raise EncryptionError(

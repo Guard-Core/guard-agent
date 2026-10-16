@@ -60,6 +60,7 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
         stalls past BLOCK_POLICY_POLL_INTERVAL before re-checking for space.
         """
         condition = self._get_event_condition()
+        deadline = time.monotonic() + self.config.buffer_block_timeout
         async with condition:
             while True:
                 must_wait = await self._resolve_event_overflow()
@@ -67,9 +68,14 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
                     self.event_buffer.append(event)
                     self.events_buffered += 1
                     break
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    self._drop_blocked_event()
+                    return
                 try:
                     await asyncio.wait_for(
-                        condition.wait(), timeout=BLOCK_POLICY_POLL_INTERVAL
+                        condition.wait(),
+                        timeout=min(BLOCK_POLICY_POLL_INTERVAL, remaining),
                     )
                 except asyncio.TimeoutError:
                     pass
@@ -92,6 +98,7 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
         See add_event for the block-policy starvation rule.
         """
         condition = self._get_metric_condition()
+        deadline = time.monotonic() + self.config.buffer_block_timeout
         async with condition:
             while True:
                 must_wait = await self._resolve_metric_overflow()
@@ -99,9 +106,14 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
                     self.metric_buffer.append(metric)
                     self.metrics_buffered += 1
                     break
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    self._drop_blocked_metric()
+                    return
                 try:
                     await asyncio.wait_for(
-                        condition.wait(), timeout=BLOCK_POLICY_POLL_INTERVAL
+                        condition.wait(),
+                        timeout=min(BLOCK_POLICY_POLL_INTERVAL, remaining),
                     )
                 except asyncio.TimeoutError:
                     pass

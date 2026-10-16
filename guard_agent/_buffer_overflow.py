@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from guard_agent._buffer_redis import BufferRedisMixin
 from guard_agent.exceptions import BufferFullError
@@ -8,6 +9,7 @@ BLOCK_POLICY_POLL_INTERVAL = 0.5
 
 
 class BufferOverflowMixin(BufferRedisMixin):
+    logger: logging.Logger
     _DROP_LOG_INTERVAL: int
     config: AgentConfig
     events_dropped: int
@@ -80,6 +82,26 @@ class BufferOverflowMixin(BufferRedisMixin):
         if dropped_key:
             await self.confirm_metric_redis_keys([dropped_key])
         return False
+
+    def _drop_blocked_event(self) -> None:
+        self.events_dropped += 1
+        if self.events_dropped % self._DROP_LOG_INTERVAL == 1:
+            self.logger.warning(
+                f"Event buffer full at maxlen={self.config.buffer_size}; dropped "
+                f"the new event after buffer_block_timeout="
+                f"{self.config.buffer_block_timeout}s "
+                f"({self.events_dropped} dropped total)"
+            )
+
+    def _drop_blocked_metric(self) -> None:
+        self.metrics_dropped += 1
+        if self.metrics_dropped % self._DROP_LOG_INTERVAL == 1:
+            self.logger.warning(
+                f"Metric buffer full at maxlen={self.config.buffer_size}; dropped "
+                f"the new metric after buffer_block_timeout="
+                f"{self.config.buffer_block_timeout}s "
+                f"({self.metrics_dropped} dropped total)"
+            )
 
     def _forget_oldest_event_key(self) -> str | None:
         if not self.event_buffer:

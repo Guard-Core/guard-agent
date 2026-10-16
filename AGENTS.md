@@ -109,6 +109,7 @@ All behavior is `AgentConfig` (Pydantic). Key fields and their defaults:
 | `project_id` | `None` | SaaS project the telemetry is attributed to |
 | `buffer_size` | `100` | Per-buffer deque capacity (events and metrics each) |
 | `flush_interval` | `30` | Seconds between automatic flushes |
+| `buffer_block_timeout` | `1.0` | Seconds the `block` policy waits for space before dropping the new entry with a sampled warning |
 | `high_watermark_ratio` | `0.8` | Occupancy fraction that triggers an early flush |
 | `buffer_overflow_policy` | `"drop"` | Overflow behavior: `drop` (evict oldest), `block` (backpressure), `raise` (`BufferFullError`) |
 | `retry_attempts` | `3` | Retries for transient failures |

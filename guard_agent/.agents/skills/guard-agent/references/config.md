@@ -16,6 +16,7 @@
 | `high_watermark_ratio` | `0.8` | Buffer occupancy that triggers an early flush. |
 | `max_concurrent_flushes` | `1` | Early-flush concurrency limit. |
 | `buffer_overflow_policy` | `drop` | `drop` / `block` / `raise`. |
+| `buffer_block_timeout` | `1.0` | Seconds `block` waits for space, then drops the new entry (sampled warning). |
 | `enable_metrics` | `True` | When False, `send_metric` is a no-op. |
 | `enable_events` | `True` | When False, `send_event` is a no-op. |
 | `retry_attempts` | `3` | Transient-failure retries per batch. |

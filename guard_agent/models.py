@@ -95,6 +95,14 @@ class AgentConfig(BaseModel):
             "'raise' throws BufferFullError so callers can react."
         ),
     )
+    buffer_block_timeout: float = Field(
+        default=1.0,
+        gt=0,
+        description=(
+            "Seconds the 'block' overflow policy waits for free space before "
+            "dropping the new entry with a sampled warning."
+        ),
+    )
 
     enable_metrics: bool = Field(default=True, description="Send performance metrics")
     enable_events: bool = Field(default=True, description="Send security events")

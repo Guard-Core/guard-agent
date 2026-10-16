@@ -260,6 +260,10 @@ class DynamicRules(BaseModel):
 
     rule_id: str = Field(default="default-rule", description="Unique rule ID")
     version: int = Field(default=1, description="Rule version number")
+    is_platform_default: bool = Field(
+        default=False,
+        description="True for the SaaS platform default shape, never an operator rule",
+    )
     timestamp: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         description="Rule creation/update timestamp",
@@ -323,9 +327,6 @@ class DynamicRules(BaseModel):
     emergency_mode: bool = Field(default=False, description="Emergency lockdown mode")
     emergency_whitelist: list[str] = Field(
         default_factory=list, description="Emergency whitelist IPs"
-    )
-    emergency_whitelist_only: bool = Field(
-        default=False, description="Only allow emergency whitelist IPs"
     )
     message: str | None = Field(
         default=None, description="Optional rule message from server"

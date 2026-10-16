@@ -145,6 +145,11 @@ filterwarnings = [
     # anyio.from_thread.BlockingPortal; drop this filter once a starlette
     # release carries it.
     'ignore:The anyio\.abc\.BlockingPortal alias is deprecated:DeprecationWarning',
+    # guard-core 4.5.0 warns once when ban_on_hostile_signals is not set (the flag
+    # default flips in 5.0.0), and the "error" filter turns that into a failure at
+    # collection time, when the tests build a SecurityConfig. Ignore exactly that
+    # message; it is harmless against 4.4.0 too.
+    'ignore:ban_on_hostile_signals is not set:DeprecationWarning',
 ]
 markers = [
     "asyncio: mark tests as async"

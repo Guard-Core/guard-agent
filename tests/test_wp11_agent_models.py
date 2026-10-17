@@ -9,7 +9,10 @@ def test_dynamic_rules_accepts_is_platform_default_and_unknown_fields() -> None:
     assert DynamicRules(rule_id="r").is_platform_default is False
 
 
-def test_dynamic_rules_drops_emergency_whitelist_only() -> None:
-    assert "emergency_whitelist_only" not in DynamicRules.model_fields
-    rules = DynamicRules(rule_id="r", emergency_whitelist_only=True)
-    assert not hasattr(rules, "emergency_whitelist_only")
+def test_dynamic_rules_keeps_emergency_whitelist_only() -> None:
+    assert DynamicRules(rule_id="r").emergency_whitelist_only is False
+    rules = DynamicRules.model_validate(
+        {"rule_id": "r", "emergency_mode": True, "emergency_whitelist_only": True}
+    )
+    assert rules.emergency_whitelist_only is True
+    assert rules.model_dump()["emergency_whitelist_only"] is True

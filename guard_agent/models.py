@@ -328,6 +328,9 @@ class DynamicRules(BaseModel):
     emergency_whitelist: list[str] = Field(
         default_factory=list, description="Emergency whitelist IPs"
     )
+    emergency_whitelist_only: bool = Field(
+        default=False, description="Only allow emergency whitelist IPs"
+    )
     message: str | None = Field(
         default=None, description="Optional rule message from server"
     )

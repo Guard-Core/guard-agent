@@ -1003,10 +1003,10 @@ class TestHTTPTransport:
 
         # Mock rate limiter to be rate limited on first call, then succeed
         with patch.object(
-            transport.rate_limiter, "acquire", side_effect=[False, True]
+            transport.rules_rate_limiter, "acquire", side_effect=[False, True]
         ) as mock_acquire:
             with patch.object(
-                transport.rate_limiter, "get_retry_after", return_value=0.1
+                transport.rules_rate_limiter, "get_retry_after", return_value=0.1
             ) as mock_get_retry_after:
                 with patch("asyncio.sleep") as mock_sleep:
                     mock_response = AsyncMock()

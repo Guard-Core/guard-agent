@@ -6,7 +6,7 @@ from guard_agent.encryption import PayloadEncryptor
 from guard_agent.install_id import resolve_install_id
 from guard_agent.models import AgentConfig
 from guard_agent.protocols import TransportProtocol
-from guard_agent.utils import CircuitBreaker, RateLimiter
+from guard_agent.utils import CircuitBreaker
 
 
 class HTTPTransport(TransportSendMixin, TransportProtocol):
@@ -30,10 +30,7 @@ class HTTPTransport(TransportSendMixin, TransportProtocol):
         self.circuit_breaker = CircuitBreaker(
             failure_threshold=5, recovery_timeout=60.0
         )
-        self.rate_limiter = RateLimiter(
-            max_calls=100,
-            time_window=60.0,
-        )
+        self._reset_rate_limiters()
 
         self.requests_sent = 0
         self.requests_failed = 0

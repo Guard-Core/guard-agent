@@ -13,6 +13,10 @@ from guard_agent.encryption import (
 from guard_agent.models import AgentConfig
 from guard_agent.utils import CircuitBreaker, RateLimiter, fire_error_hook
 
+TELEMETRY_RATE_BUDGET = (100, 60.0)
+RULES_RATE_BUDGET = (10, 60.0)
+STATUS_RATE_BUDGET = (10, 60.0)
+
 
 class TransportLifecycleMixin:
     config: AgentConfig
@@ -24,6 +28,8 @@ class TransportLifecycleMixin:
     _encryption_enabled: bool
     circuit_breaker: CircuitBreaker
     rate_limiter: RateLimiter
+    rules_rate_limiter: RateLimiter
+    status_rate_limiter: RateLimiter
     requests_sent: int
     requests_failed: int
     bytes_sent: int
@@ -38,6 +44,11 @@ class TransportLifecycleMixin:
         except Exception as e:
             self.logger.debug(f"register_at_fork unavailable: {e}")
 
+    def _reset_rate_limiters(self) -> None:
+        self.rate_limiter = RateLimiter(*TELEMETRY_RATE_BUDGET)
+        self.rules_rate_limiter = RateLimiter(*RULES_RATE_BUDGET)
+        self.status_rate_limiter = RateLimiter(*STATUS_RATE_BUDGET)
+
     def _reset_after_fork(self) -> None:
         """Drop transport state inherited from the parent process."""
         self._client = None
@@ -45,7 +56,7 @@ class TransportLifecycleMixin:
         self.circuit_breaker = CircuitBreaker(
             failure_threshold=5, recovery_timeout=60.0
         )
-        self.rate_limiter = RateLimiter(max_calls=100, time_window=60.0)
+        self._reset_rate_limiters()
         self.requests_sent = 0
         self.requests_failed = 0
         self.bytes_sent = 0

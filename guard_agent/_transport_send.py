@@ -16,6 +16,7 @@ from guard_agent.models import (
 )
 from guard_agent.utils import (
     RateLimitedError,
+    RateLimiter,
     calculate_backoff_delay,
     generate_batch_id,
     get_current_timestamp,
@@ -155,7 +156,10 @@ class TransportSendMixin(TransportDispatchMixin):
         """Send agent status/health information."""
         try:
             return await self._send_with_retry(
-                "/api/v1/status", status.model_dump(), "status"
+                "/api/v1/status",
+                status.model_dump(),
+                "status",
+                self.status_rate_limiter,
             )
 
         except Exception as e:
@@ -189,13 +193,18 @@ class TransportSendMixin(TransportDispatchMixin):
         return False
 
     async def _send_with_retry(
-        self, endpoint: str, data: dict[str, Any], data_type: str
+        self,
+        endpoint: str,
+        data: dict[str, Any],
+        data_type: str,
+        limiter: RateLimiter | None = None,
     ) -> bool:
         """Send data with retry logic and circuit breaker."""
+        limiter = limiter or self.rate_limiter
         for attempt in range(self.config.retry_attempts + 1):
             try:
-                if not await self.rate_limiter.acquire():
-                    retry_after = self.rate_limiter.get_retry_after()
+                if not await limiter.acquire():
+                    retry_after = limiter.get_retry_after()
                     self.logger.warning(
                         f"Rate limit exceeded, waiting {retry_after:.1f}s"
                     )
@@ -239,10 +248,8 @@ class TransportSendMixin(TransportDispatchMixin):
         """GET request with retry logic and circuit breaker."""
         for attempt in range(self.config.retry_attempts + 1):
             try:
-                if not await self.rate_limiter.acquire():
-                    retry_after = self.rate_limiter.get_retry_after()
-                    await asyncio.sleep(retry_after)
-                    continue
+                while not await self.rules_rate_limiter.acquire():
+                    await asyncio.sleep(self.rules_rate_limiter.get_retry_after())
 
                 response_data = await self.circuit_breaker.call(
                     self._make_request, "GET", endpoint, None

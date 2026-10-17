@@ -70,10 +70,10 @@ class TestPerformanceImpact:
     _PERF_MAX_OVERHEAD = 0.30  # 30%
 
     def _measure_best_of_n(self, app: FastAPI) -> tuple[float, float]:
-        """Run the request loop N times and return (best_time, best_rps).
+        """Run the request loop N times and return (best_cpu_time, best_rps).
 
-        Best = fastest round. Reduces sensitivity to runner noise (GC, other
-        processes, thermal throttling) compared to a single sample.
+        Each round is timed in process CPU time, every thread included, so a
+        loaded machine does not count as agent overhead. Best = fastest round.
         """
         client = TestClient(app)
 
@@ -83,11 +83,11 @@ class TestPerformanceImpact:
 
         best_time = float("inf")
         for _ in range(self._PERF_ROUNDS):
-            start_time = time.time()
+            start_time = time.process_time()
             for _ in range(self._PERF_REQUESTS_PER_ROUND):
                 response = client.get("/test")
                 assert response.status_code == 200
-            round_time = time.time() - start_time
+            round_time = time.process_time() - start_time
             best_time = min(best_time, round_time)
 
         best_rps = self._PERF_REQUESTS_PER_ROUND / best_time
@@ -153,12 +153,13 @@ class TestPerformanceImpact:
         ]
 
         # Measure buffer add performance
-        start_time = time.time()
-        for event in events:
-            await buffer.add_event(event)
-        end_time = time.time()
+        with patch.object(asyncio, "sleep", wraps=asyncio.sleep) as sleep_spy:
+            start_time = time.process_time()
+            for event in events:
+                await buffer.add_event(event)
+            add_time = time.process_time() - start_time
+        sleep_spy.assert_not_called()
 
-        add_time = end_time - start_time
         events_per_second = 1000 / add_time
 
         print(f"Buffer performance: {events_per_second:.1f} events/sec")
@@ -197,13 +198,14 @@ class TestPerformanceImpact:
         ]
 
         # Measure transport performance
-        start_time = time.time()
-        for i in range(0, 100, 10):  # Send in batches of 10
-            batch = events[i : i + 10]
-            await transport.send_events(batch)
-        end_time = time.time()
+        with patch.object(asyncio, "sleep", wraps=asyncio.sleep) as sleep_spy:
+            start_time = time.process_time()
+            for i in range(0, 100, 10):  # Send in batches of 10
+                batch = events[i : i + 10]
+                await transport.send_events(batch)
+            transport_time = time.process_time() - start_time
+        sleep_spy.assert_not_called()
 
-        transport_time = end_time - start_time
         events_per_second = 100 / transport_time
 
         print(f"Transport performance: {events_per_second:.1f} events/sec")
@@ -271,11 +273,9 @@ class TestPerformanceImpact:
                 await agent.send_event(event)
 
         # Run multiple workers concurrently
-        start_time = time.time()
+        start_time = time.process_time()
         await asyncio.gather(*[send_events_worker(i) for i in range(10)])
-        end_time = time.time()
-
-        concurrent_time = end_time - start_time
+        concurrent_time = time.process_time() - start_time
         total_events = 10 * 10  # 10 workers × 10 events
         events_per_second = total_events / concurrent_time
 

@@ -393,6 +393,11 @@ class TestEventBatch:
 _KNOWN_EVENT_TYPES_PARITY_MINIMUM = (4, 0, 0)
 
 
+# Types the agent lists before guard-core sends them, so an agent release never
+# rejects a type the engine starts sending (guard-core 4.5.0 sends ip_ban_refused).
+_AGENT_AHEAD_OF_ENGINE = frozenset({"ip_ban_refused"})
+
+
 def test_known_event_types_match_guard_core() -> None:
     """Compares against whatever guard_core is installed in this venv. The
     parity contract (behavioral_violation's rename, and registering
@@ -422,7 +427,9 @@ def test_known_event_types_match_guard_core() -> None:
             "guard_core.core.events.event_types.EVENT_TYPE_VALUES"
         )
 
-    guard_agent_only = sorted(set(KNOWN_EVENT_TYPES) - set(EVENT_TYPE_VALUES))
+    guard_agent_only = sorted(
+        set(KNOWN_EVENT_TYPES) - set(EVENT_TYPE_VALUES) - _AGENT_AHEAD_OF_ENGINE
+    )
     guard_core_only = sorted(set(EVENT_TYPE_VALUES) - set(KNOWN_EVENT_TYPES))
 
     assert not guard_agent_only and not guard_core_only, (

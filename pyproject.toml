@@ -150,6 +150,10 @@ filterwarnings = [
     # collection time, when the tests build a SecurityConfig. Ignore exactly that
     # message; it is harmless against 4.4.0 too.
     'ignore:ban_on_hostile_signals is not set:DeprecationWarning',
+    # guard-core 4.5.0 also warns once when enable_redis or rate_limit is not set
+    # (both defaults change in 5.0.0). Ignore exactly those two messages.
+    'ignore:enable_redis is not set:DeprecationWarning',
+    'ignore:rate_limit is not set:DeprecationWarning',
 ]
 markers = [
     "asyncio: mark tests as async"

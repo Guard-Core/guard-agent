@@ -34,7 +34,6 @@ class HTTPTransport(TransportSendMixin, TransportProtocol):
 
         self._held_rules = None
         self._held_rules_etag = None
-        self._last_get_etag = None
 
         self.requests_sent = 0
         self.requests_failed = 0

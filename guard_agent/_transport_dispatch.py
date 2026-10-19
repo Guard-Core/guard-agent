@@ -25,6 +25,14 @@ class NotModifiedResponse(dict[str, Any]):
     """A GET answered 304: the caller's held copy is still current."""
 
 
+class ETaggedResponse(dict[str, Any]):
+    """A GET body that carries the ETag of the response it came from."""
+
+    def __init__(self, data: dict[str, Any], etag: str | None) -> None:
+        super().__init__(data)
+        self.etag = etag
+
+
 class TransportResponseMixin:
     logger: Any
 
@@ -107,7 +115,6 @@ class TransportResponseMixin:
 
 
 class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
-    _last_get_etag: str | None
     _ENCRYPTED_ENDPOINTS = ("/api/v1/events", "/api/v1/metrics")
 
     def _build_post_body(self, json_text: str) -> tuple[bytes, dict[str, str]]:
@@ -207,10 +214,12 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
             if params:
                 extra["params"] = params
             response = await self._client.get(url, **extra)
-            self._last_get_etag = response.headers.get("ETag")
             if response.status_code == 304:
                 return NotModifiedResponse()
-            return await self._handle_response(response)
+            result = await self._handle_response(response)
+            if isinstance(result, dict):
+                return ETaggedResponse(result, response.headers.get("ETag"))
+            return result
         raise ValueError(f"Unsupported method: {method}")
 
     def _build_encrypted_payload(self, data: dict[str, Any]) -> dict[str, Any]:

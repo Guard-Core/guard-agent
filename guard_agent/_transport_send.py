@@ -4,6 +4,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from guard_agent._transport_dispatch import (
+    ETaggedResponse,
     NotModifiedResponse,
     TransportDispatchMixin,
 )
@@ -156,7 +157,11 @@ class TransportSendMixin(TransportDispatchMixin):
             if response_data:
                 rules = DynamicRules(**response_data)
                 self._held_rules = rules
-                self._held_rules_etag = self._last_get_etag
+                self._held_rules_etag = (
+                    response_data.etag
+                    if isinstance(response_data, ETaggedResponse)
+                    else None
+                )
                 return rules
 
             return None

@@ -23,6 +23,7 @@ if not settings.configured:
     )
     django.setup()
 
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -30,6 +31,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from guard_agent.buffer import EventBuffer
+from guard_agent.client import GuardAgentHandler
 from guard_agent.models import AgentConfig, SecurityEvent, SecurityMetric
 
 
@@ -142,3 +144,10 @@ def settle_redis_persists(
             return wrapper
 
         monkeypatch.setattr(EventBuffer, name, make(original))
+
+
+@pytest.fixture
+def fresh_agent_singleton() -> Iterator[None]:
+    GuardAgentHandler._instance = None
+    yield
+    GuardAgentHandler._instance = None

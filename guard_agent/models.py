@@ -10,6 +10,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 _logger = logging.getLogger(__name__)
 _endpoint_suffix_warned = False
 
+RULES_TTL_MIN = 60
+RULES_TTL_MAX = 86400
+RULES_TTL_DEFAULT = 300
+
 KNOWN_EVENT_TYPES = [
     "ip_banned",
     "ip_unbanned",
@@ -273,7 +277,13 @@ class DynamicRules(BaseModel):
     expires_at: datetime | None = Field(
         default=None, description="Rule expiration time"
     )
-    ttl: int = Field(default=300, description="Cache TTL in seconds")
+    ttl: int = Field(
+        default=RULES_TTL_DEFAULT,
+        description=(
+            "Cache TTL in seconds, also the offline grace period; clamped into "
+            f"[{RULES_TTL_MIN}, {RULES_TTL_MAX}], null becomes {RULES_TTL_DEFAULT}"
+        ),
+    )
 
     ip_blacklist: list[str] = Field(default_factory=list, description="IPs to ban")
     ip_whitelist: list[str] = Field(default_factory=list, description="IPs to allow")
@@ -336,6 +346,16 @@ class DynamicRules(BaseModel):
     message: str | None = Field(
         default=None, description="Optional rule message from server"
     )
+
+    @field_validator("ttl", mode="before")
+    @classmethod
+    def _null_ttl_is_the_default(cls, value: Any) -> Any:
+        return RULES_TTL_DEFAULT if value is None else value
+
+    @field_validator("ttl")
+    @classmethod
+    def _clamp_ttl(cls, value: int) -> int:
+        return max(RULES_TTL_MIN, min(RULES_TTL_MAX, value))
 
 
 class AgentStatus(BaseModel):

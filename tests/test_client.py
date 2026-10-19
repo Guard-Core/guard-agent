@@ -449,8 +449,8 @@ class TestGuardAgentHandler:
         handler.transport = AsyncMock()
         handler.transport.fetch_dynamic_rules.return_value = new_rules
 
-        handler._cached_rules = DynamicRules(ttl=1)
-        handler._rules_last_update = datetime.now(timezone.utc).timestamp() - 2
+        handler._cached_rules = DynamicRules(ttl=60)
+        handler._rules_last_update = datetime.now(timezone.utc).timestamp() - 61
 
         rules = await handler.get_dynamic_rules()
 

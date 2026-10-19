@@ -271,6 +271,13 @@ class TransportSendMixin(TransportDispatchMixin):
                     await asyncio.sleep(delay)
                 else:
                     self.requests_failed += 1
+            except PermanentClientError as e:
+                self.logger.warning(
+                    f"GET {endpoint} permanently rejected ({e.status_code}); "
+                    f"not retrying"
+                )
+                self.requests_failed += 1
+                return None
             except Exception as e:
                 self.logger.warning(
                     f"GET attempt {attempt + 1} failed for {endpoint}: {str(e)}"

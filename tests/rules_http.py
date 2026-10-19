@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -7,7 +7,7 @@ from guard_agent.client import GuardAgentHandler
 from guard_agent.models import AgentConfig, DynamicRules
 from guard_agent.transport import HTTPTransport
 
-Responder = Callable[[httpx.Request], httpx.Response]
+Responder = Callable[[httpx.Request], httpx.Response | Awaitable[httpx.Response]]
 
 
 def rules_json(rule_id: str = "r1", version: int = 1, ttl: int = 300) -> dict:
@@ -19,9 +19,12 @@ def make_handler(
 ) -> tuple[GuardAgentHandler, list[httpx.Request]]:
     seen: list[httpx.Request] = []
 
-    def record(request: httpx.Request) -> httpx.Response:
+    async def record(request: httpx.Request) -> httpx.Response:
         seen.append(request)
-        return responder(request)
+        answer = responder(request)
+        if isinstance(answer, httpx.Response):
+            return answer
+        return await answer
 
     config = AgentConfig(
         api_key="test-api-key-1234",

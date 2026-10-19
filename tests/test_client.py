@@ -433,11 +433,12 @@ class TestGuardAgentHandler:
         handler._cached_rules = cached_rules
         handler._rules_last_update = datetime.now(timezone.utc).timestamp()
         handler.transport = AsyncMock()
+        handler.transport.fetch_dynamic_rules.return_value = cached_rules
 
         rules = await handler.get_dynamic_rules()
 
         assert rules is cached_rules
-        handler.transport.fetch_dynamic_rules.assert_not_called()
+        handler.transport.fetch_dynamic_rules.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_get_dynamic_rules_expired_cache(

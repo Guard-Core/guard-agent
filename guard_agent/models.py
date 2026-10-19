@@ -369,6 +369,14 @@ class AgentStatus(BaseModel):
     buffer_size: int
     last_flush: datetime | None = None
     errors: list[str] = Field(default_factory=list)
+    rules_stale: bool = Field(
+        default=False,
+        description="True when the SaaS has failed for longer than the rules ttl",
+    )
+    rules_last_checked: datetime | None = Field(
+        default=None,
+        description="Time of the last successful rules check (a 200 or a 304)",
+    )
 
 
 class EventBatch(BaseModel):

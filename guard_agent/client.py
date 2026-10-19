@@ -103,6 +103,9 @@ class GuardAgentHandler(IngestMixin, LoopsMixin, AgentHandlerProtocol):
 
         self._cached_rules: DynamicRules | None = None
         self._rules_last_update: float = 0
+        self._last_successful_check: float | None = None
+        self._rules_stale_warned_at: float | None = None
+        self._rules_inflight: asyncio.Future[DynamicRules | None] | None = None
 
         self._initialized = True
         self.logger.info("Guard Agent Handler initialized")

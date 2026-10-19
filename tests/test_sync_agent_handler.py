@@ -76,11 +76,12 @@ def test_sync_handler_get_dynamic_rules_cached(
     inner._cached_rules = rules
     inner._rules_last_update = time.time()
     inner.transport = AsyncMock()
+    inner.transport.fetch_dynamic_rules.return_value = rules
 
     result = sync_handler.get_dynamic_rules()
 
     assert result is rules
-    inner.transport.fetch_dynamic_rules.assert_not_awaited()
+    inner.transport.fetch_dynamic_rules.assert_awaited_once()
 
 
 def test_sync_handler_get_dynamic_rules_none(

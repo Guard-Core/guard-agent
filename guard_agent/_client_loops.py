@@ -5,42 +5,95 @@ from typing import Any
 
 from guard_agent._client_flush import FlushMixin
 from guard_agent._client_status import StatusMixin
+from guard_agent._rules_staleness import RULES_STALE_WARNING_INTERVAL, rules_are_stale
 from guard_agent.models import AgentConfig, DynamicRules
 from guard_agent.protocols import TransportProtocol
 
+# asyncio.sleep can wake a hair before the interval has passed; without this
+# slack the loop would skip a poll it owes and double the delay.
+_LOOP_POLL_SLACK_SECONDS = 0.5
+
 
 class RulesMixin:
+    config: AgentConfig
     logger: logging.Logger
     transport: TransportProtocol
     rules_fetched: int
     _cached_rules: DynamicRules | None
     _rules_last_update: float
+    _last_successful_check: float | None
+    _rules_stale_warned_at: float | None
+    _rules_inflight: "asyncio.Future[DynamicRules | None] | None"
 
     async def get_dynamic_rules(self) -> DynamicRules | None:
-        current_time = time.time()
+        """Check the SaaS (conditional GET) and return the rules to apply.
 
-        if (
-            self._cached_rules
-            and current_time - self._rules_last_update < self._cached_rules.ttl
-        ):
-            return self._cached_rules
+        Concurrent calls share one in-flight request and its result.
+        """
+        inflight = self._rules_inflight
+        if inflight is None:
+            inflight = asyncio.ensure_future(self._check_dynamic_rules())
+            self._rules_inflight = inflight
+            inflight.add_done_callback(self._clear_rules_inflight)
+        return await asyncio.shield(inflight)
 
+    def _clear_rules_inflight(self, _finished: "asyncio.Future[Any]") -> None:
+        # A new request starts only once this one cleared, so nothing newer is lost.
+        self._rules_inflight = None
+
+    def _rules_check_is_due(self) -> bool:
+        if self._last_successful_check is None:
+            return True
+        age = time.time() - self._last_successful_check
+        return age >= self.config.dynamic_rule_interval - _LOOP_POLL_SLACK_SECONDS
+
+    async def _check_dynamic_rules(self) -> DynamicRules | None:
         try:
             rules = await self.transport.fetch_dynamic_rules()
-            if rules and rules is self._cached_rules:
-                self._rules_last_update = current_time
-                self.logger.debug("Dynamic rules unchanged")
-                return rules
-            if rules:
-                self._cached_rules = rules
-                self._rules_last_update = current_time
-                self.rules_fetched += 1
-                self.logger.debug("Dynamic rules updated")
-                return rules
-            return self._cached_rules
         except Exception as e:
             self.logger.error(f"Failed to fetch dynamic rules: {str(e)}")
+            rules = None
+        now = time.time()
+        if not rules:
+            self._warn_if_rules_are_stale(now)
             return self._cached_rules
+        self._record_successful_rules_check(now)
+        if rules is self._cached_rules:
+            self.logger.debug("Dynamic rules unchanged")
+            return rules
+        self._cached_rules = rules
+        self.rules_fetched += 1
+        self.logger.debug("Dynamic rules updated")
+        return rules
+
+    def _record_successful_rules_check(self, now: float) -> None:
+        self._rules_last_update = now
+        self._last_successful_check = now
+        if self._rules_stale_warned_at is None:
+            return
+        self._rules_stale_warned_at = None
+        held = self._cached_rules
+        self.logger.info(
+            "Dynamic rules check recovered after the rules went stale"
+            + (f" (held rule {held.rule_id} v{held.version})" if held else "")
+        )
+
+    def _warn_if_rules_are_stale(self, now: float) -> None:
+        held = self._cached_rules
+        last_check = self._last_successful_check
+        if held is None or last_check is None:
+            return
+        if not rules_are_stale(held, last_check, now):
+            return
+        warned_at = self._rules_stale_warned_at
+        if warned_at is not None and now - warned_at < RULES_STALE_WARNING_INTERVAL:
+            return
+        self._rules_stale_warned_at = now
+        self.logger.warning(
+            f"Dynamic rules are stale: the SaaS has not answered a rules check "
+            f"for {now - last_check:.0f}s (rule {held.rule_id} "
+            f"v{held.version}, ttl {held.ttl}s); still serving the cached rules"
+        )
 
 
 class LoopsMixin(FlushMixin, StatusMixin, RulesMixin):
@@ -109,7 +162,7 @@ class LoopsMixin(FlushMixin, StatusMixin, RulesMixin):
         while self._running:
             try:
                 await asyncio.sleep(self.config.dynamic_rule_interval)
-                if self._running:
+                if self._running and self._rules_check_is_due():
                     await self.get_dynamic_rules()
                 self._rules_consecutive_failures = 0
             except asyncio.CancelledError:

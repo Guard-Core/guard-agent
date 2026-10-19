@@ -1,7 +1,9 @@
 import logging
 import time
+from datetime import datetime, timezone
 from typing import Any, Literal
 
+from guard_agent._rules_staleness import rules_are_stale
 from guard_agent.models import AgentConfig, AgentStatus, DynamicRules
 from guard_agent.utils import get_current_timestamp
 
@@ -20,6 +22,7 @@ class StatusMixin:
     rules_fetched: int
     _cached_rules: DynamicRules | None
     _rules_last_update: float
+    _last_successful_check: float | None
     _flush_consecutive_failures: int
     _status_consecutive_failures: int
     _rules_consecutive_failures: int
@@ -65,6 +68,16 @@ class StatusMixin:
             buffer_size=buffer_size,
             last_flush=buffer_stats.get("last_flush_time"),
             errors=errors,
+            rules_stale=rules_are_stale(
+                self._cached_rules, self._last_successful_check, time.time()
+            ),
+            rules_last_checked=(
+                None
+                if self._last_successful_check is None
+                else datetime.fromtimestamp(
+                    self._last_successful_check, tz=timezone.utc
+                )
+            ),
         )
 
     def get_stats(self) -> dict[str, Any]:

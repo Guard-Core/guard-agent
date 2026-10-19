@@ -40,7 +40,7 @@ async def test_next_poll_is_conditional_and_a_304_keeps_the_cached_rules() -> No
 
 
 @pytest.mark.asyncio
-async def test_304_restarts_the_cache_window() -> None:
+async def test_304_refreshes_the_last_update_and_the_last_successful_check() -> None:
     handler, seen = make_handler(
         lambda request: (
             httpx.Response(304)
@@ -49,12 +49,15 @@ async def test_304_restarts_the_cache_window() -> None:
         )
     )
     await poll(handler)
-    expire(handler)
-    await poll(handler)
+    handler._rules_last_update = 0
+    handler._last_successful_check = 0
 
     await poll(handler)
 
     assert len(seen) == 2
+    assert handler._rules_last_update > 0
+    assert handler._last_successful_check is not None
+    assert handler._last_successful_check > 0
 
 
 @pytest.mark.asyncio

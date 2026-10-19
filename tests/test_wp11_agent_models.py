@@ -2,8 +2,13 @@ from guard_agent.models import DynamicRules
 
 
 def test_dynamic_rules_accepts_is_platform_default_and_unknown_fields() -> None:
-    rules = DynamicRules(
-        rule_id="default-p", version=1, is_platform_default=True, brand_new_field=1
+    rules = DynamicRules.model_validate(
+        {
+            "rule_id": "default-p",
+            "version": 1,
+            "is_platform_default": True,
+            "brand_new_field": 1,
+        }
     )
     assert rules.is_platform_default is True
     assert DynamicRules(rule_id="r").is_platform_default is False

@@ -60,6 +60,7 @@ async def test_stale_rules_warn_once_then_hourly_and_still_serve_the_cache(
     assert len(messages) == 2
     assert "held-rule" in messages[0] and "7" in messages[0]
     assert "100" in messages[0]
+    assert "purge_dynamic_rules_on_start='held-rule:7'" in messages[0]
     assert "enable_dynamic_rules" not in " ".join(messages)
 
 

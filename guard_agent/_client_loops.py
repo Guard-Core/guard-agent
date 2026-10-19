@@ -128,7 +128,10 @@ class RulesMixin:
         self.logger.warning(
             f"Dynamic rules are stale: the SaaS has not answered a rules check "
             f"for {now - last_check:.0f}s (rule {held.rule_id} "
-            f"v{held.version}, ttl {held.ttl}s); still serving the cached rules"
+            f"v{held.version}, ttl {held.ttl}s); still serving the cached rules. "
+            f"To drop them locally, set purge_dynamic_rules_on_start="
+            f"'{held.rule_id}:{held.version}' in guard-core's SecurityConfig and "
+            "restart"
         )
 
 

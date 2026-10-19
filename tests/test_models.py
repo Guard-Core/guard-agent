@@ -394,8 +394,9 @@ _KNOWN_EVENT_TYPES_PARITY_MINIMUM = (4, 0, 0)
 
 
 # Types the agent lists before guard-core sends them, so an agent release never
-# rejects a type the engine starts sending (guard-core 4.5.0 sends ip_ban_refused).
-_AGENT_AHEAD_OF_ENGINE = frozenset({"ip_ban_refused"})
+# rejects a type the engine starts sending (the guard-core 4.5.0 stack sends
+# ip_ban_refused and ip_ban_evicted; the 4.4.0 PyPI engine sends neither).
+_AGENT_AHEAD_OF_ENGINE = frozenset({"ip_ban_refused", "ip_ban_evicted"})
 
 
 def test_known_event_types_match_guard_core() -> None:

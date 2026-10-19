@@ -1,16 +1,14 @@
 import logging
 from datetime import datetime, timezone
-from unittest.mock import patch
 
 import httpx
 import pytest
 
 from guard_agent.models import AgentStatus
-from tests.rules_http import make_handler, poll, rules_json
+from tests.rules_http import fake_clock, make_handler, poll, rules_json
 
 pytestmark = pytest.mark.usefixtures("fresh_agent_singleton")
 
-_CLOCK = "guard_agent._client_loops.time.time"
 _HOUR = 3600.0
 _T0 = 1_000_000.0
 
@@ -37,7 +35,7 @@ async def test_stale_rules_warn_once_then_hourly_and_still_serve_the_cache(
     handler, _ = make_handler(lambda request: _saas(up))
     clock = [_T0]
     caplog.set_level(logging.DEBUG)
-    with patch(_CLOCK, lambda: clock[0]):
+    with fake_clock(clock):
         held = await poll(handler)
         up[0] = False
 
@@ -73,7 +71,7 @@ async def test_first_good_check_after_stale_logs_one_info_line(
     handler, _ = make_handler(lambda request: _saas(up))
     clock = [_T0]
     caplog.set_level(logging.DEBUG)
-    with patch(_CLOCK, lambda: clock[0]):
+    with fake_clock(clock):
         await poll(handler)
         up[0] = False
         clock[0] = _T0 + 100
@@ -98,7 +96,7 @@ async def test_status_reports_stale_rules_and_the_last_successful_check() -> Non
     up = [True]
     handler, _ = make_handler(lambda request: _saas(up))
     clock = [_T0]
-    with patch(_CLOCK, lambda: clock[0]):
+    with fake_clock(clock):
         await poll(handler)
         fresh = await handler.get_status()
         up[0] = False

@@ -3,6 +3,7 @@ import logging
 import os
 import threading
 import time
+from collections import deque
 from typing import Any
 
 from guard_agent._client_ingest import IngestMixin
@@ -104,6 +105,9 @@ class GuardAgentHandler(IngestMixin, LoopsMixin, AgentHandlerProtocol):
         self._cached_rules: DynamicRules | None = None
         self._rules_last_update: float = 0
         self._last_successful_check: float | None = None
+        self._last_successful_check_wall: float | None = None
+        self._outside_call_stamps: deque[float] = deque(maxlen=3)
+        self._next_rules_call_is_the_loops = False
         self._rules_stale_warned_at: float | None = None
         self._rules_inflight: asyncio.Future[DynamicRules | None] | None = None
 

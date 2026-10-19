@@ -1,6 +1,8 @@
 import asyncio
+import itertools
 import logging
 import time
+from collections import deque
 from typing import Any
 
 from guard_agent._client_flush import FlushMixin
@@ -9,9 +11,9 @@ from guard_agent._rules_staleness import RULES_STALE_WARNING_INTERVAL, rules_are
 from guard_agent.models import AgentConfig, DynamicRules
 from guard_agent.protocols import TransportProtocol
 
-# asyncio.sleep can wake a hair before the interval has passed; without this
-# slack the loop would skip a poll it owes and double the delay.
-_LOOP_POLL_SLACK_SECONDS = 0.5
+# The loop yields to an outside caller (the engine) for this many agent
+# intervals, or engine gaps when those are longer.
+_OUTSIDE_CALL_WINDOW_FACTOR = 1.5
 
 
 class RulesMixin:
@@ -22,14 +24,26 @@ class RulesMixin:
     _cached_rules: DynamicRules | None
     _rules_last_update: float
     _last_successful_check: float | None
+    _last_successful_check_wall: float | None
+    _outside_call_stamps: deque[float]
+    _next_rules_call_is_the_loops: bool
     _rules_stale_warned_at: float | None
     _rules_inflight: "asyncio.Future[DynamicRules | None] | None"
 
     async def get_dynamic_rules(self) -> DynamicRules | None:
         """Check the SaaS (conditional GET) and return the rules to apply.
 
+        Every call from outside the agent's own loop is stamped, even one that
+        joins an in-flight request, so the loop knows an engine is polling.
         Concurrent calls share one in-flight request and its result.
         """
+        if self._next_rules_call_is_the_loops:
+            self._next_rules_call_is_the_loops = False
+        else:
+            self._outside_call_stamps.append(time.monotonic())
+        return await self._shared_rules_check()
+
+    async def _shared_rules_check(self) -> DynamicRules | None:
         inflight = self._rules_inflight
         if inflight is None:
             inflight = asyncio.ensure_future(self._check_dynamic_rules())
@@ -37,15 +51,35 @@ class RulesMixin:
             inflight.add_done_callback(self._clear_rules_inflight)
         return await asyncio.shield(inflight)
 
+    async def _rules_check_from_the_loop(self) -> None:
+        # The flag is read and cleared at the first line of get_dynamic_rules,
+        # which runs before any await, so an outside call cannot take it.
+        self._next_rules_call_is_the_loops = True
+        try:
+            await self.get_dynamic_rules()
+        finally:
+            self._next_rules_call_is_the_loops = False
+
     def _clear_rules_inflight(self, _finished: "asyncio.Future[Any]") -> None:
         # A new request starts only once this one cleared, so nothing newer is lost.
         self._rules_inflight = None
 
     def _rules_check_is_due(self) -> bool:
-        if self._last_successful_check is None:
+        """The loop polls only when no outside call started within the window.
+
+        The window is 1.5 x the larger of the agent interval and the larger of
+        the last two gaps between outside calls (the agent interval alone before
+        the second outside call), so a force_update or an error retry in the
+        engine does not make the loop take over.
+        """
+        stamps = self._outside_call_stamps
+        if not stamps:
             return True
-        age = time.time() - self._last_successful_check
-        return age >= self.config.dynamic_rule_interval - _LOOP_POLL_SLACK_SECONDS
+        longest = float(self.config.dynamic_rule_interval)
+        if len(stamps) >= 2:
+            gaps = [later - earlier for earlier, later in itertools.pairwise(stamps)]
+            longest = max(longest, *gaps)
+        return time.monotonic() - stamps[-1] >= _OUTSIDE_CALL_WINDOW_FACTOR * longest
 
     async def _check_dynamic_rules(self) -> DynamicRules | None:
         try:
@@ -53,7 +87,7 @@ class RulesMixin:
         except Exception as e:
             self.logger.error(f"Failed to fetch dynamic rules: {str(e)}")
             rules = None
-        now = time.time()
+        now = time.monotonic()
         if not rules:
             self._warn_if_rules_are_stale(now)
             return self._cached_rules
@@ -66,9 +100,11 @@ class RulesMixin:
         self.logger.debug("Dynamic rules updated")
         return rules
 
+    # `now` is monotonic; the wall stamp only feeds the status report.
     def _record_successful_rules_check(self, now: float) -> None:
-        self._rules_last_update = now
+        self._rules_last_update = time.time()
         self._last_successful_check = now
+        self._last_successful_check_wall = time.time()
         if self._rules_stale_warned_at is None:
             return
         self._rules_stale_warned_at = None
@@ -163,7 +199,7 @@ class LoopsMixin(FlushMixin, StatusMixin, RulesMixin):
             try:
                 await asyncio.sleep(self.config.dynamic_rule_interval)
                 if self._running and self._rules_check_is_due():
-                    await self.get_dynamic_rules()
+                    await self._rules_check_from_the_loop()
                 self._rules_consecutive_failures = 0
             except asyncio.CancelledError:
                 break

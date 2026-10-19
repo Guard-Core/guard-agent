@@ -1,4 +1,6 @@
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterator
+from contextlib import contextmanager
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -6,6 +8,7 @@ import httpx
 from guard_agent.client import GuardAgentHandler
 from guard_agent.models import AgentConfig, DynamicRules
 from guard_agent.transport import HTTPTransport
+from guard_agent.utils import RateLimiter
 
 Responder = Callable[[httpx.Request], httpx.Response | Awaitable[httpx.Response]]
 
@@ -34,6 +37,8 @@ def make_handler(
         backoff_factor=0.001,
     )
     transport = HTTPTransport(config)
+    # The client budget is real time (10 per 60 s); replays run faster than that.
+    transport.rules_rate_limiter = RateLimiter(10**6, 60.0)
     transport._client = httpx.AsyncClient(transport=httpx.MockTransport(record))
     handler = GuardAgentHandler(config)
     handler.transport = transport
@@ -47,3 +52,14 @@ def expire(handler: GuardAgentHandler) -> None:
 async def poll(handler: GuardAgentHandler) -> DynamicRules | None:
     with patch("guard_agent._transport_send.asyncio.sleep", AsyncMock()):
         return await handler.get_dynamic_rules()
+
+
+@contextmanager
+def fake_clock(clock: list[float]) -> Iterator[None]:
+    """Replace guard_agent's own clock (not asyncio's) with clock[0]."""
+    stub = SimpleNamespace(time=lambda: clock[0], monotonic=lambda: clock[0])
+    with (
+        patch("guard_agent._client_loops.time", stub),
+        patch("guard_agent._client_status.time", stub),
+    ):
+        yield

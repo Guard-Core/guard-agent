@@ -23,6 +23,7 @@ class StatusMixin:
     _cached_rules: DynamicRules | None
     _rules_last_update: float
     _last_successful_check: float | None
+    _last_successful_check_wall: float | None
     _flush_consecutive_failures: int
     _status_consecutive_failures: int
     _rules_consecutive_failures: int
@@ -69,13 +70,13 @@ class StatusMixin:
             last_flush=buffer_stats.get("last_flush_time"),
             errors=errors,
             rules_stale=rules_are_stale(
-                self._cached_rules, self._last_successful_check, time.time()
+                self._cached_rules, self._last_successful_check, time.monotonic()
             ),
             rules_last_checked=(
                 None
-                if self._last_successful_check is None
+                if self._last_successful_check_wall is None
                 else datetime.fromtimestamp(
-                    self._last_successful_check, tz=timezone.utc
+                    self._last_successful_check_wall, tz=timezone.utc
                 )
             ),
         )

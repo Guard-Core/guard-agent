@@ -5,11 +5,10 @@ import httpx
 import pytest
 
 from guard_agent.client import GuardAgentHandler
-from tests.rules_http import make_handler, poll, rules_json
+from tests.rules_http import fake_clock, make_handler, poll, rules_json
 
 pytestmark = pytest.mark.usefixtures("fresh_agent_singleton")
 
-_CLOCK = "guard_agent._client_loops.time.time"
 _HOUR = 3600.0
 
 
@@ -105,11 +104,11 @@ async def _run_rules_loop(
 
 
 @pytest.mark.asyncio
-async def test_rules_loop_skips_while_the_last_successful_check_is_young() -> None:
+async def test_rules_loop_skips_right_after_an_outside_call() -> None:
     handler, seen = make_handler(lambda request: _conditional_saas())
     handler.config.dynamic_rule_interval = 300
     clock = [1000.0]
-    with patch(_CLOCK, lambda: clock[0]):
+    with fake_clock(clock):
         await poll(handler)
         clock[0] += 10
         await _run_rules_loop(handler, clock, wakes=1, advance=100)
@@ -122,32 +121,10 @@ async def test_a_standalone_agent_still_polls_every_interval() -> None:
     handler, seen = make_handler(lambda request: _conditional_saas())
     handler.config.dynamic_rule_interval = 300
     clock = [1000.0]
-    with patch(_CLOCK, lambda: clock[0]):
+    with fake_clock(clock):
         await _run_rules_loop(handler, clock, wakes=3, advance=300)
 
     assert len(seen) == 3
-
-
-@pytest.mark.asyncio
-async def test_a_failed_check_does_not_make_the_loop_skip() -> None:
-    saas_up = [True]
-    handler, seen = make_handler(
-        lambda request: (
-            _conditional_saas() if saas_up[0] else httpx.Response(503, text="down")
-        )
-    )
-    handler.config.dynamic_rule_interval = 300
-    clock = [1000.0]
-    with patch(_CLOCK, lambda: clock[0]):
-        await poll(handler)
-        saas_up[0] = False
-        clock[0] += 400
-        await _run_rules_loop(handler, clock, wakes=1, advance=0)
-        after_first_failure = len(seen)
-        await _run_rules_loop(handler, clock, wakes=1, advance=10)
-
-    assert after_first_failure > 1
-    assert len(seen) > after_first_failure
 
 
 @pytest.mark.asyncio
@@ -187,7 +164,7 @@ async def test_a_dashboard_change_reaches_the_engine_within_one_engine_interval(
 
     handler._running = True
     with (
-        patch(_CLOCK, lambda: clock[0]),
+        fake_clock(clock),
         patch("guard_agent._client_loops.asyncio.sleep", fake_sleep),
     ):
         await handler._rules_loop()

@@ -286,6 +286,31 @@ class TransportSendMixin(TransportDispatchMixin):
 
         return False
 
+    async def _back_off_after_rate_limited_get(
+        self, error: RateLimitedError, endpoint: str, attempt: int
+    ) -> None:
+        delay = min(error.retry_after_seconds, _MAX_RETRY_AFTER_SECONDS)
+        self.logger.warning(
+            f"Server rate-limited GET {endpoint}; sleeping {delay:.1f}s per Retry-After"
+        )
+        if attempt < self.config.retry_attempts:
+            await asyncio.sleep(delay)
+        else:
+            self.requests_failed += 1
+
+    async def _back_off_after_failed_get(
+        self, error: Exception, endpoint: str, attempt: int
+    ) -> None:
+        self.logger.warning(
+            f"GET attempt {attempt + 1} failed for {endpoint}: {str(error)}"
+        )
+
+        if attempt < self.config.retry_attempts:
+            delay = calculate_backoff_delay(attempt, self.config.backoff_factor)
+            await asyncio.sleep(delay)
+        else:
+            self.requests_failed += 1
+
     async def _get_with_retry(
         self,
         endpoint: str,
@@ -314,15 +339,7 @@ class TransportSendMixin(TransportDispatchMixin):
                     self.requests_failed += 1
 
             except RateLimitedError as e:
-                delay = min(e.retry_after_seconds, _MAX_RETRY_AFTER_SECONDS)
-                self.logger.warning(
-                    f"Server rate-limited GET {endpoint}; sleeping {delay:.1f}s "
-                    f"per Retry-After"
-                )
-                if attempt < self.config.retry_attempts:
-                    await asyncio.sleep(delay)
-                else:
-                    self.requests_failed += 1
+                await self._back_off_after_rate_limited_get(e, endpoint, attempt)
             except PermanentClientError as e:
                 self.logger.warning(
                     f"GET {endpoint} permanently rejected ({e.status_code}); "
@@ -331,14 +348,6 @@ class TransportSendMixin(TransportDispatchMixin):
                 self.requests_failed += 1
                 return None
             except Exception as e:
-                self.logger.warning(
-                    f"GET attempt {attempt + 1} failed for {endpoint}: {str(e)}"
-                )
-
-                if attempt < self.config.retry_attempts:
-                    delay = calculate_backoff_delay(attempt, self.config.backoff_factor)
-                    await asyncio.sleep(delay)
-                else:
-                    self.requests_failed += 1
+                await self._back_off_after_failed_get(e, endpoint, attempt)
 
         return None

@@ -310,7 +310,7 @@ class AgentConfig(BaseModel):
 
 ##### Rules polling contract (conditional GET)
 
-Every `dynamic_rule_interval` the agent polls `GET /api/v1/rules`. Once it holds a rule set from a 200 response it makes the poll conditional. Every agent family and the SaaS follow this contract.
+Every call of `get_dynamic_rules` (the engine's poll, every engine interval) makes this GET; there is no ttl short-circuit, and concurrent calls share one in-flight request and its result. The agent's own rules loop skips its call only while the last successful check (a 200 or a 304, never an error or a fallback to the cache) is younger than `dynamic_rule_interval`, so a standalone agent still polls every interval. Once it holds a rule set from a 200 response it makes the poll conditional. Every agent family and the SaaS follow this contract.
 
 - The agent sends the query params `last_rule_id` and `last_rule_version` of the rule set it holds. Both always travel together, never the version alone, because synthetic rule sets reuse versions.
 - When the last 200 response carried an `ETag`, the agent also sends `If-None-Match` with that exact value. Without an `ETag` it sends no `If-None-Match`.
@@ -318,6 +318,7 @@ Every `dynamic_rule_interval` the agent polls `GET /api/v1/rules`. Once it holds
 - `304` means unchanged: the agent keeps its cached rules, restarts the cache window (`_rules_last_update` is refreshed) and does not count a rules fetch. A 304 is its own path, never an error and never retried. A 304 with no rules held is logged as a warning and yields no rules.
 - `200` replaces the held rule set and its `ETag` (the `ETag` is dropped when the response has none). A SaaS that ignores the params and the header and always answers 200 behaves exactly as v3.2.4.
 - Any other failure (5xx, timeout, network error, 401 or 403) is retried with backoff up to `retry_attempts`. A permanent 4xx (400, 404, 422) is never retried. Whenever the fetch fails and rules are held, `get_dynamic_rules` returns the cached rules.
+- Stale rules: when the SaaS has failed for longer than the cached rules' `ttl` since the last successful check, the agent keeps serving the cached rules, logs one WARNING when they become stale and again every hour while they stay stale (rule id, version, seconds since the last successful check), and one INFO line on the first successful check afterwards. `AgentStatus.rules_stale` and `AgentStatus.rules_last_checked` (time of the last 200 or 304) report it; both default so an older payload stays valid.
 - `ttl` of a rule set is clamped into `[60, 86400]` seconds on load and a missing or null `ttl` becomes `300`; a response is never rejected for its `ttl`.
 
 ##### SecurityEvent

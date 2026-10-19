@@ -32,7 +32,8 @@ class RulesMixin:
                 self._rules_last_update = current_time
                 self.rules_fetched += 1
                 self.logger.debug("Dynamic rules updated")
-            return rules
+                return rules
+            return self._cached_rules
         except Exception as e:
             self.logger.error(f"Failed to fetch dynamic rules: {str(e)}")
             return self._cached_rules

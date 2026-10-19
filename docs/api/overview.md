@@ -308,6 +308,18 @@ class AgentConfig(BaseModel):
 
 429 responses raise `RateLimitedError(retry_after_seconds)`; the transport sleeps that exact value (capped at 300s) before retrying instead of falling back to client-side exponential backoff.
 
+##### Rules polling contract (conditional GET)
+
+Every `dynamic_rule_interval` the agent polls `GET /api/v1/rules`. Once it holds a rule set from a 200 response it makes the poll conditional. Every agent family and the SaaS follow this contract.
+
+- The agent sends the query params `last_rule_id` and `last_rule_version` of the rule set it holds. Both always travel together, never the version alone, because synthetic rule sets reuse versions.
+- When the last 200 response carried an `ETag`, the agent also sends `If-None-Match` with that exact value. Without an `ETag` it sends no `If-None-Match`.
+- The first poll, and every poll before a 200 has been received, carries none of these.
+- `304` means unchanged: the agent keeps its cached rules, restarts the cache window (`_rules_last_update` is refreshed) and does not count a rules fetch. A 304 is its own path, never an error and never retried. A 304 with no rules held is logged as a warning and yields no rules.
+- `200` replaces the held rule set and its `ETag` (the `ETag` is dropped when the response has none). A SaaS that ignores the params and the header and always answers 200 behaves exactly as v3.2.4.
+- Any other failure (5xx, timeout, network error, 401 or 403) is retried with backoff up to `retry_attempts`. A permanent 4xx (400, 404, 422) is never retried. Whenever the fetch fails and rules are held, `get_dynamic_rules` returns the cached rules.
+- `ttl` of a rule set is clamped into `[60, 86400]` seconds on load and a missing or null `ttl` becomes `300`; a response is never rejected for its `ttl`.
+
 ##### SecurityEvent
 
 ```python

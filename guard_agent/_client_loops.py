@@ -27,6 +27,10 @@ class RulesMixin:
 
         try:
             rules = await self.transport.fetch_dynamic_rules()
+            if rules and rules is self._cached_rules:
+                self._rules_last_update = current_time
+                self.logger.debug("Dynamic rules unchanged")
+                return rules
             if rules:
                 self._cached_rules = rules
                 self._rules_last_update = current_time

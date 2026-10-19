@@ -21,6 +21,10 @@ from guard_agent.utils import (
 _NON_RETRYABLE_STATUS_CODES = (400, 404, 413, 422)
 
 
+class NotModifiedResponse(dict[str, Any]):
+    """A GET answered 304: the caller's held copy is still current."""
+
+
 class TransportResponseMixin:
     logger: Any
 
@@ -103,6 +107,7 @@ class TransportResponseMixin:
 
 
 class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
+    _last_get_etag: str | None
     _ENCRYPTED_ENDPOINTS = ("/api/v1/events", "/api/v1/metrics")
 
     def _build_post_body(self, json_text: str) -> tuple[bytes, dict[str, str]]:
@@ -149,7 +154,12 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
         )
 
     async def _make_request(
-        self, method: str, endpoint: str, data: dict[str, Any] | None
+        self,
+        method: str,
+        endpoint: str,
+        data: dict[str, Any] | None,
+        headers: dict[str, str] | None = None,
+        params: dict[str, str] | None = None,
     ) -> dict[str, Any] | bool:
         """Make HTTP request with proper error handling and optional encryption."""
         await self._ensure_client_for_current_process()
@@ -168,7 +178,9 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
             actual_url = url
 
         try:
-            return await self._dispatch_request(method, endpoint, url, data)
+            return await self._dispatch_request(
+                method, endpoint, url, data, headers, params
+            )
         except Exception as e:
             self._log_request_error(method, actual_url, e)
             raise
@@ -179,6 +191,8 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
         endpoint: str,
         url: str,
         data: dict[str, Any] | None,
+        headers: dict[str, str] | None = None,
+        params: dict[str, str] | None = None,
     ) -> dict[str, Any] | bool:
         """Dispatch the HTTP call by method/endpoint without error handling."""
         assert self._client is not None
@@ -187,7 +201,15 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
                 return await self._post_encrypted(data)
             return await self._post_unencrypted(url, data)
         if method == "GET":
-            response = await self._client.get(url)
+            extra: dict[str, Any] = {}
+            if headers:
+                extra["headers"] = headers
+            if params:
+                extra["params"] = params
+            response = await self._client.get(url, **extra)
+            self._last_get_etag = response.headers.get("ETag")
+            if response.status_code == 304:
+                return NotModifiedResponse()
             return await self._handle_response(response)
         raise ValueError(f"Unsupported method: {method}")
 

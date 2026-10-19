@@ -3,7 +3,10 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from guard_agent._transport_dispatch import TransportDispatchMixin
+from guard_agent._transport_dispatch import (
+    NotModifiedResponse,
+    TransportDispatchMixin,
+)
 from guard_agent._version import __version__ as _AGENT_VERSION
 from guard_agent.exceptions import PayloadTooLargeError, PermanentClientError
 from guard_agent.models import (
@@ -28,6 +31,8 @@ _MAX_RETRY_AFTER_SECONDS = 300.0
 class TransportSendMixin(TransportDispatchMixin):
     config: AgentConfig
     logger: logging.Logger
+    _held_rules: DynamicRules | None
+    _held_rules_etag: str | None
 
     async def send_events(self, events: list[SecurityEvent]) -> bool:
         """Send security events to the SaaS platform.
@@ -141,16 +146,48 @@ class TransportSendMixin(TransportDispatchMixin):
     async def fetch_dynamic_rules(self) -> DynamicRules | None:
         """Fetch dynamic rules from the SaaS platform."""
         try:
-            response_data = await self._get_with_retry("/api/v1/rules")
+            response_data = await self._get_with_retry(
+                "/api/v1/rules", **self._conditional_rules_request()
+            )
+
+            if isinstance(response_data, NotModifiedResponse):
+                return self._held_rules_after_not_modified()
 
             if response_data:
-                return DynamicRules(**response_data)
+                rules = DynamicRules(**response_data)
+                self._held_rules = rules
+                self._held_rules_etag = self._last_get_etag
+                return rules
 
             return None
 
         except Exception as e:
             self.logger.error(f"Failed to fetch dynamic rules: {str(e)}")
             return None
+
+    def _conditional_rules_request(self) -> dict[str, dict[str, str]]:
+        """Headers and params naming the rule set held, empty before the first 200.
+
+        The rule id and version travel together because synthetic rule sets
+        reuse versions; the ETag is sent only when the last 200 carried one.
+        """
+        held = self._held_rules
+        if held is None:
+            return {}
+        request: dict[str, dict[str, str]] = {
+            "params": {
+                "last_rule_id": held.rule_id,
+                "last_rule_version": str(held.version),
+            }
+        }
+        if self._held_rules_etag:
+            request["headers"] = {"If-None-Match": self._held_rules_etag}
+        return request
+
+    def _held_rules_after_not_modified(self) -> DynamicRules | None:
+        if self._held_rules is None:
+            self.logger.warning("Rules GET answered 304 but no rules are held")
+        return self._held_rules
 
     async def send_status(self, status: AgentStatus) -> bool:
         """Send agent status/health information."""
@@ -244,15 +281,25 @@ class TransportSendMixin(TransportDispatchMixin):
 
         return False
 
-    async def _get_with_retry(self, endpoint: str) -> dict[str, Any] | None:
+    async def _get_with_retry(
+        self,
+        endpoint: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
         """GET request with retry logic and circuit breaker."""
+        extra: dict[str, Any] = {}
+        if headers:
+            extra["headers"] = headers
+        if params:
+            extra["params"] = params
         for attempt in range(self.config.retry_attempts + 1):
             try:
                 while not await self.rules_rate_limiter.acquire():
                     await asyncio.sleep(self.rules_rate_limiter.get_retry_after())
 
                 response_data = await self.circuit_breaker.call(
-                    self._make_request, "GET", endpoint, None
+                    self._make_request, "GET", endpoint, None, **extra
                 )
 
                 if isinstance(response_data, dict):

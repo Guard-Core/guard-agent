@@ -154,3 +154,23 @@ async def test_a_backward_wall_clock_step_does_not_stop_a_standalone_agent() -> 
     await timeline.run([], [180.0, 240.0, 300.0])
 
     assert timeline.loop_gets == [60.0, 120.0, 180.0, 240.0, 300.0]
+
+
+@pytest.mark.asyncio
+async def test_a_call_that_joins_an_in_flight_request_is_still_stamped() -> None:
+    gate = asyncio.Event()
+
+    async def respond(request: httpx.Request) -> httpx.Response:
+        await gate.wait()
+        return _saas(request)
+
+    handler, _ = make_handler(respond)
+    handler._running = True
+    loop_call = asyncio.ensure_future(handler._rules_check_from_the_loop())
+    await asyncio.sleep(0.02)
+    joiners = [asyncio.ensure_future(handler.get_dynamic_rules()) for _ in range(2)]
+    await asyncio.sleep(0.02)
+    gate.set()
+    await asyncio.gather(loop_call, *joiners)
+
+    assert len(handler._outside_call_stamps) == 2

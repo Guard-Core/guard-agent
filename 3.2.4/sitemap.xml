@@ -2,38 +2,38 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://guard-core.github.io/guard-agent/3.2.4/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-20</lastmod>
     </url>
     <url>
          <loc>https://guard-core.github.io/guard-agent/3.2.4/installation/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-20</lastmod>
     </url>
     <url>
          <loc>https://guard-core.github.io/guard-agent/3.2.4/release-notes/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-20</lastmod>
     </url>
     <url>
          <loc>https://guard-core.github.io/guard-agent/3.2.4/adapters/django/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-20</lastmod>
     </url>
     <url>
          <loc>https://guard-core.github.io/guard-agent/3.2.4/adapters/fastapi/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-20</lastmod>
     </url>
     <url>
          <loc>https://guard-core.github.io/guard-agent/3.2.4/adapters/flask/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-20</lastmod>
     </url>
     <url>
          <loc>https://guard-core.github.io/guard-agent/3.2.4/adapters/tornado/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-20</lastmod>
     </url>
     <url>
          <loc>https://guard-core.github.io/guard-agent/3.2.4/api/overview/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-20</lastmod>
     </url>
     <url>
          <loc>https://guard-core.github.io/guard-agent/3.2.4/tutorial/getting-started/</loc>
-         <lastmod>2026-10-15</lastmod>
+         <lastmod>2026-10-20</lastmod>
     </url>
 </urlset>

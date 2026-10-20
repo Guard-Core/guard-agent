@@ -32,6 +32,7 @@ class TestPerformanceImpact:
             exclude_paths=["/test"],
             passive_mode=True,
             whitelist=("127.0.0.1",),
+            whitelist_access_only=False,
         )
         app.add_middleware(SecurityMiddleware, config=config)
 

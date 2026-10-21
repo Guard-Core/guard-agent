@@ -54,6 +54,18 @@ def test_sync_handler_stop(
     inner.transport.close.assert_awaited_once()
 
 
+def test_sync_handler_initialize_redis(
+    sync_handler: SyncGuardAgentHandler, mock_redis_handler: AsyncMock
+) -> None:
+    inner = sync_handler._inner
+    inner.buffer = AsyncMock()
+
+    sync_handler.initialize_redis(mock_redis_handler)
+
+    assert inner.redis_handler is mock_redis_handler
+    inner.buffer.initialize_redis.assert_awaited_once_with(mock_redis_handler)
+
+
 def test_sync_handler_flush_buffer(
     sync_handler: SyncGuardAgentHandler,
 ) -> None:

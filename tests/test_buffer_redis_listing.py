@@ -151,7 +151,14 @@ async def test_the_engine_handler_the_buffer_gets_lists_with_scan(
     from guard_core.models import SecurityConfig
 
     manager = RedisManager(
-        SecurityConfig(enable_redis=True, redis_url=REDIS_URL, redis_prefix=PREFIX)
+        SecurityConfig(
+            enable_redis=True,
+            redis_url=REDIS_URL,
+            redis_prefix=PREFIX,
+            ban_on_hostile_signals=False,
+            rate_limit=100,
+            whitelist_access_only=False,
+        )
     )
 
     @asynccontextmanager

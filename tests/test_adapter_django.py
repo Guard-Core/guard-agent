@@ -16,6 +16,10 @@ settings.GUARD_SECURITY_CONFIG = SecurityConfig(
     agent_api_key=API_KEY,
     agent_project_id=PROJECT_ID,
     passive_mode=True,
+    enable_redis=False,
+    ban_on_hostile_signals=False,
+    rate_limit=100,
+    whitelist_access_only=False,
 )
 
 
@@ -34,6 +38,10 @@ class TestDjangoAdapterIntegration:
             enable_agent=True,
             agent_api_key=API_KEY,
             agent_project_id=PROJECT_ID,
+            enable_redis=False,
+            ban_on_hostile_signals=False,
+            rate_limit=100,
+            whitelist_access_only=False,
         )
 
         agent_config = config.to_agent_config()

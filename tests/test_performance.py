@@ -33,6 +33,7 @@ class TestPerformanceImpact:
             passive_mode=True,
             whitelist=("127.0.0.1",),
             whitelist_access_only=False,
+            ban_on_hostile_signals=False,
         )
         app.add_middleware(SecurityMiddleware, config=config)
 
@@ -53,6 +54,8 @@ class TestPerformanceImpact:
             agent_project_id="test-project",
             exclude_paths=["/test"],
             passive_mode=True,
+            ban_on_hostile_signals=False,
+            whitelist_access_only=False,
         )
         app.add_middleware(SecurityMiddleware, config=config)
 

@@ -46,6 +46,10 @@ class TestFlaskAdapterIntegration:
             agent_api_key=self.API_KEY,
             agent_project_id=self.PROJECT_ID,
             passive_mode=True,
+            enable_redis=False,
+            ban_on_hostile_signals=False,
+            rate_limit=100,
+            whitelist_access_only=False,
         )
         FlaskAPIGuard(app, config=config)
 
@@ -61,6 +65,10 @@ class TestFlaskAdapterIntegration:
             enable_agent=True,
             agent_api_key=self.API_KEY,
             agent_project_id=self.PROJECT_ID,
+            enable_redis=False,
+            ban_on_hostile_signals=False,
+            rate_limit=100,
+            whitelist_access_only=False,
         )
 
         agent_config = config.to_agent_config()
@@ -87,6 +95,10 @@ class TestFlaskAdapterIntegration:
             agent_api_key=self.API_KEY,
             agent_project_id=self.PROJECT_ID,
             passive_mode=True,
+            enable_redis=False,
+            ban_on_hostile_signals=False,
+            rate_limit=100,
+            whitelist_access_only=False,
         )
         guard = FlaskAPIGuard()
         app = Flask(__name__)

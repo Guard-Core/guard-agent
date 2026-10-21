@@ -31,6 +31,9 @@ class TestFastAPIAdapterIntegration:
             agent_api_key=self.API_KEY,
             agent_project_id=self.PROJECT_ID,
             passive_mode=True,
+            ban_on_hostile_signals=False,
+            rate_limit=100,
+            whitelist_access_only=False,
         )
         app.add_middleware(SecurityMiddleware, config=config)
 
@@ -46,6 +49,10 @@ class TestFastAPIAdapterIntegration:
             enable_agent=True,
             agent_api_key=self.API_KEY,
             agent_project_id=self.PROJECT_ID,
+            enable_redis=False,
+            ban_on_hostile_signals=False,
+            rate_limit=100,
+            whitelist_access_only=False,
         )
 
         agent_config = config.to_agent_config()
@@ -67,5 +74,11 @@ class TestFastAPIAdapterIntegration:
 
     def test_agent_disabled_does_not_produce_config(self) -> None:
         """With `enable_agent=False`, `to_agent_config()` returns `None`."""
-        config = SecurityConfig(enable_agent=False)
+        config = SecurityConfig(
+            enable_agent=False,
+            enable_redis=False,
+            ban_on_hostile_signals=False,
+            rate_limit=100,
+            whitelist_access_only=False,
+        )
         assert config.to_agent_config() is None

@@ -214,7 +214,7 @@ class TestYieldToHostRootHandlersFilter:
         try:
             setup_agent_logging()
             handler = logging.getLogger(GUARD_AGENT_LOGGER_NAME).handlers[0]
-            assert handler.filter(make_record()) is True
+            assert handler.filter(make_record())
         finally:
             root.handlers = original_handlers
 

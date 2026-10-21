@@ -46,6 +46,7 @@ class TestFlaskAdapterIntegration:
             agent_api_key=self.API_KEY,
             agent_project_id=self.PROJECT_ID,
             passive_mode=True,
+            enable_redis=False,
         )
         FlaskAPIGuard(app, config=config)
 
@@ -87,6 +88,7 @@ class TestFlaskAdapterIntegration:
             agent_api_key=self.API_KEY,
             agent_project_id=self.PROJECT_ID,
             passive_mode=True,
+            enable_redis=False,
         )
         guard = FlaskAPIGuard()
         app = Flask(__name__)

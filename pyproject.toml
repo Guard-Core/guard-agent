@@ -72,8 +72,7 @@ dev = [
     # system semgrep-core binary (fastapi's pins trigger that backtracking).
     "semgrep>=1.100,<2",
     "tornado",
-    # tornadoapi-guard: not yet published on PyPI (only a yanked 0.0.1).
-    # Re-enable here once the adapter ships a 1.0.0+ release to PyPI.
+    "tornadoapi-guard>=2.0.0",
     "django-stubs",
     "types-psutil",
     "types-setuptools",
@@ -320,6 +319,7 @@ per_rule_ignores = { "DEP002" = [
     "ruff",
     "semgrep",
     "tornado",
+    "tornadoapi-guard",
     "django-stubs",
     "types-psutil",
     "types-setuptools",

@@ -45,6 +45,7 @@ def _posted_events(client: AsyncMock) -> list[dict[str, Any]]:
 @pytest.mark.asyncio
 async def test_event_attribution_metadata_reaches_the_wire_unchanged(
     agent_config: AgentConfig,
+    fresh_agent_singleton: None,
 ) -> None:
     handler = GuardAgentHandler(agent_config)
     client = _client()
@@ -70,6 +71,7 @@ async def test_event_attribution_metadata_reaches_the_wire_unchanged(
 @pytest.mark.asyncio
 async def test_a_duck_typed_event_keeps_the_attribution_metadata(
     agent_config: AgentConfig,
+    fresh_agent_singleton: None,
 ) -> None:
     handler = GuardAgentHandler(agent_config)
     client = _client()

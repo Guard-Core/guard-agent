@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from django.conf import settings
 from django.http import HttpRequest, JsonResponse
 from django.test import Client
@@ -10,6 +12,7 @@ from guard_agent.models import AgentConfig
 
 API_KEY = "test-api-key-1234567890"
 PROJECT_ID = "test-project"
+REDIS_URL = os.getenv("REDIS_URL") or "redis://localhost:6379"
 
 settings.GUARD_SECURITY_CONFIG = SecurityConfig(
     enable_agent=True,
@@ -20,6 +23,7 @@ settings.GUARD_SECURITY_CONFIG = SecurityConfig(
     ban_on_hostile_signals=False,
     rate_limit=100,
     whitelist_access_only=False,
+    redis_url=REDIS_URL,
 )
 
 

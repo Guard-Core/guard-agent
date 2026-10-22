@@ -11,6 +11,7 @@ stays focused on real failures; true agent wire behavior is covered in the
 unit tests for ``guard_agent/client.py``.
 """
 
+import os
 import warnings
 
 import pytest
@@ -19,6 +20,8 @@ from flaskapi_guard import FlaskAPIGuard
 from guard_core.models import SecurityConfig
 
 from guard_agent.models import AgentConfig
+
+REDIS_URL = os.getenv("REDIS_URL") or "redis://localhost:6379"
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:coroutine .* was never awaited:RuntimeWarning"
@@ -50,6 +53,7 @@ class TestFlaskAdapterIntegration:
             ban_on_hostile_signals=False,
             rate_limit=100,
             whitelist_access_only=False,
+            redis_url=REDIS_URL,
         )
         FlaskAPIGuard(app, config=config)
 
@@ -99,6 +103,7 @@ class TestFlaskAdapterIntegration:
             ban_on_hostile_signals=False,
             rate_limit=100,
             whitelist_access_only=False,
+            redis_url=REDIS_URL,
         )
         guard = FlaskAPIGuard()
         app = Flask(__name__)

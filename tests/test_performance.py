@@ -4,6 +4,7 @@ import os
 import sys
 import time
 from datetime import datetime, timezone
+from types import FrameType
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import psutil
@@ -12,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from guard import SecurityConfig, SecurityMiddleware
 
+import guard_agent as guard_agent_module
 from guard_agent import SecurityEvent, guard_agent
 from guard_agent.buffer import EventBuffer
 from guard_agent.client import GuardAgentHandler
@@ -65,13 +67,9 @@ class TestPerformanceImpact:
 
         return app
 
-    # Threshold intentionally generous: microbenchmarks on shared CI runners
-    # are noisy, so we measure best-of-N rounds and compare against a
-    # same-run baseline. The goal is to catch true regressions (e.g. a 2×
-    # slowdown), not to enforce a tight performance budget.
+    # The throughput floors below are loose sanity checks, best of N rounds.
     _PERF_ROUNDS = 5
     _PERF_REQUESTS_PER_ROUND = 100
-    _PERF_MAX_OVERHEAD = 0.30  # 30%
 
     def _measure_best_of_n(self, app: FastAPI) -> tuple[float, float]:
         """Run the request loop N times and return (best_cpu_time, best_rps).
@@ -114,27 +112,93 @@ class TestPerformanceImpact:
         )
         assert baseline_time < 5.0, f"Baseline test took too long: {baseline_time:.2f}s"
 
+    # The agent's overhead on the request path is counted in calls made from
+    # guard_agent's own code, not timed: a wall or CPU clock moves with host
+    # load (this test failed at 30.5% on a loaded host with no code change),
+    # a call count does not. Detection is off in both apps so the baseline is
+    # the plain request pipeline, and both apps share one config apart from
+    # enable_agent. 10% of the baseline's calls is about twice the measured
+    # share (5.6%), so an agent path that doubles in cost fails.
+    _CALLS_REQUESTS = 20
+    _CALLS_MAX_OVERHEAD = 0.10
+
+    def _create_counted_app(self, enable_agent: bool) -> FastAPI:
+        app = FastAPI()
+        config = SecurityConfig(
+            rate_limit=100000,
+            enable_redis=False,
+            passive_mode=True,
+            enable_penetration_detection=False,
+            ban_on_hostile_signals=False,
+            whitelist_access_only=False,
+            enable_agent=enable_agent,
+            agent_api_key="test-api-key-0123456789" if enable_agent else None,
+            agent_project_id="test-project" if enable_agent else None,
+        )
+        app.add_middleware(SecurityMiddleware, config=config)
+
+        @app.get("/test")
+        def test_endpoint() -> dict[str, str]:
+            return {"message": "test"}
+
+        return app
+
+    def _count_request_path_calls(self, app: FastAPI) -> tuple[int, int]:
+        """Return (all calls, calls made by guard_agent code) over the loop."""
+        agent_dir = os.path.dirname(guard_agent_module.__file__)
+        counts = {"all": 0, "agent": 0}
+
+        def profiler(frame: FrameType, event: str, arg: object) -> None:
+            if event in ("call", "c_call"):
+                counts["all"] += 1
+                if frame.f_code.co_filename.startswith(agent_dir):
+                    counts["agent"] += 1
+
+        async def start_counting() -> None:
+            sys.setprofile(profiler)
+
+        async def stop_counting() -> None:
+            sys.setprofile(None)
+
+        with TestClient(app) as client:
+            assert client.portal is not None
+            for _ in range(10):
+                client.get("/test")
+            counts["all"] = counts["agent"] = 0
+            client.portal.call(start_counting)
+            for _ in range(self._CALLS_REQUESTS):
+                assert client.get("/test").status_code == 200
+            client.portal.call(stop_counting)
+        return counts["all"], counts["agent"]
+
     def test_agent_performance_impact(self) -> None:
-        """Measure performance impact with agent enabled."""
-        app = self.create_app_with_agent()
-
-        # Mock the agent to avoid actual HTTP calls
-        with patch("guard_agent.guard_agent") as mock_guard_agent:
-            mock_agent = AsyncMock()
-            mock_guard_agent.return_value = mock_agent
-
-            agent_time, agent_rps = self._measure_best_of_n(app)
-            print(f"With Agent: {agent_rps:.1f} RPS (best of {self._PERF_ROUNDS})")
-
-            baseline_time, baseline_rps = self._measure_baseline_performance()
-            performance_impact = (agent_time - baseline_time) / baseline_time
-
-            print(f"Performance impact: {performance_impact * 100:.1f}%")
-            threshold = 1.0 if sys.gettrace() is not None else self._PERF_MAX_OVERHEAD
-            assert performance_impact < threshold, (
-                f"Agent causes {performance_impact * 100:.1f}% performance "
-                f"degradation (threshold {threshold * 100:.0f}%)"
+        """The agent's request-path overhead stays a small share of the calls."""
+        handler = GuardAgentHandler(
+            AgentConfig(api_key="test-api-key-0123456789", buffer_size=10000)
+        )
+        handler.transport = AsyncMock()
+        with (
+            patch.object(handler, "start", AsyncMock()),
+            patch("guard_agent.guard_agent", return_value=handler),
+        ):
+            _, agent_calls = self._count_request_path_calls(
+                self._create_counted_app(enable_agent=True)
             )
+        baseline_calls, baseline_agent_calls = self._count_request_path_calls(
+            self._create_counted_app(enable_agent=False)
+        )
+
+        assert baseline_agent_calls == 0
+        assert len(handler.buffer.metric_buffer) >= self._CALLS_REQUESTS, (
+            "the agent never saw the requests, so nothing was measured"
+        )
+        overhead = agent_calls / baseline_calls
+        print(f"Agent calls per request: {agent_calls / self._CALLS_REQUESTS:.1f}")
+        print(f"Performance impact: {overhead * 100:.1f}%")
+        assert overhead < self._CALLS_MAX_OVERHEAD, (
+            f"Agent adds {overhead * 100:.1f}% calls to the request path "
+            f"(threshold {self._CALLS_MAX_OVERHEAD * 100:.0f}%)"
+        )
 
     @pytest.mark.asyncio
     async def test_buffer_performance(self) -> None:

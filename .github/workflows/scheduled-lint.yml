@@ -20,6 +20,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
+          # Tooling job with no test run: 3.10 is the floor the lint and type config targets (mypy python_version 3.10); the test matrix owns the other versions.
           python-version: '3.10'
 
       - name: Install uv
@@ -55,6 +56,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
+          # Tooling job with no test run: 3.10 is the floor the lint and type config targets (mypy python_version 3.10); the test matrix owns the other versions.
           python-version: '3.10'
 
       - name: Install pymarkdownlnt

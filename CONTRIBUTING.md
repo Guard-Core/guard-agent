@@ -112,6 +112,8 @@ Technical documentation is generated using MkDocs with Material theme. To build 
 make serve-docs
 ```
 
+Docs build only on Python 3.14 (`make serve-docs` and the docs workflow use it): on 3.10 the newest mkdocstrings (1.0.6) fails with pymdown-extensions 12 with `TypeError: Highlight.__init__() missing 1 required positional argument: 'md'`.
+
 Comprehensive documentation updates are mandatory for all significant architectural or API modifications.
 
 ___

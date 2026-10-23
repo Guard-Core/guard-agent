@@ -16,9 +16,9 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=on \
 
 USER 10001
 
-COPY --chown=app:app pyproject.toml uv.lock* README.md /app/
+COPY --chown=app:app pyproject.toml uv.lock README.md /app/
 
-RUN uv sync --extra dev
+RUN uv sync --locked --extra dev
 
 ENV PATH="/app/.venv/bin:$PATH"
 

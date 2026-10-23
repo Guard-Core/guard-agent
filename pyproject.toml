@@ -79,6 +79,9 @@ redis = [
 ]
 
 [dependency-groups]
+release = [
+    "build",
+]
 docs = [
     "mike",
     "mkdocs",
@@ -321,6 +324,7 @@ per_rule_ignores = { "DEP002" = [
     "mkdocstrings",
     "mkdocstrings-python",
     "mkdocs-material",
+    "build",
     "yq",
     "mike",
     "mypy",

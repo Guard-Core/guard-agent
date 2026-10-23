@@ -52,15 +52,10 @@ dev = [
     "flaskapi-guard",
     "httpx",
     "httpx2",
-    "mkdocs",
-    "mkdocstrings",
-    "mkdocstrings-python",
-    "mkdocs-material",
     "mypy",
     "pip-audit",
     "pre-commit",
     "psutil",
-    "pymarkdownlnt",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
@@ -81,6 +76,17 @@ dev = [
 ]
 redis = [
     "redis",
+]
+
+[dependency-groups]
+docs = [
+    "mike",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings",
+    "mkdocstrings-python",
+    "pymarkdownlnt",
+    "yq",
 ]
 
 [build-system]
@@ -285,6 +291,16 @@ max_average = "A"
 exclude = ["tests/*", ".venv/*", "vulture_whitelist.py"]
 ignore = []
 
+[tool.uv]
+exclude-newer = "7 days"
+
+[tool.uv.exclude-newer-package]
+djapi-guard = "0 days"
+fastapi-guard = "0 days"
+flaskapi-guard = "0 days"
+guard-core = "0 days"
+tornadoapi-guard = "0 days"
+
 [tool.deptry]
 exclude = ["tests", ".venv", "vulture_whitelist.py", "docs"]
 extend_exclude = ["conftest.py"]
@@ -305,6 +321,8 @@ per_rule_ignores = { "DEP002" = [
     "mkdocstrings",
     "mkdocstrings-python",
     "mkdocs-material",
+    "yq",
+    "mike",
     "mypy",
     "pip-audit",
     "pre-commit",

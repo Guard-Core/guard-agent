@@ -46,10 +46,9 @@ jobs:
       - name: Build documentation
         run: uv run --no-sync mkdocs build --strict
 
-      # TODO: Uncomment this after linting is fixed.
-      # - name: Lint documentation
-      #   run: |
-      #     uv run --no-sync pymarkdownlnt scan -r -e ./.venv -e ./.git -e ./.github -e ./guard_agent -e ./tests .
+      - name: Lint documentation
+        run: |
+          uv run --no-sync pymarkdownlnt scan -r docs README.md CHANGELOG.md
 
       - name: Configure Git user
         run: |

@@ -13,7 +13,7 @@ keywords: fastapi, flask, django, tornado, security, middleware, telemetry, moni
 </p>
 
 <p align="center">
-    <strong>Guard Agent is a framework-agnostic telemetry and monitoring solution for the Guard security ecosystem. Paired with an adapter (<code>fastapi-guard</code>, <code>flaskapi-guard</code>, <code>djapi-guard</code>, or <code>tornadoapi-guard</code>), it collects security events, performance metrics, and operational telemetry in real time — feeding centralized security operations, compliance reporting, and dynamic threat response through an enterprise-grade management platform.</strong>
+    <strong>Guard Agent is a framework-agnostic telemetry and monitoring solution for the Guard security ecosystem. Paired with an adapter (<code>fastapi-guard</code>, <code>flaskapi-guard</code>, <code>djapi-guard</code>, or <code>tornadoapi-guard</code>), it collects security events, performance metrics, and operational telemetry in real time - feeding centralized security operations, compliance reporting, and dynamic threat response through an enterprise-grade management platform.</strong>
 </p>
 
 !!! info "Renamed from `fastapi-guard-agent` in 2.0.0"
@@ -69,15 +69,15 @@ Guard Agent bridges application-level security enforcement and enterprise securi
 
 The collected telemetry flows to the Guard platform:
 
-- **[app.guard-core.com](https://app.guard-core.com)** — the dashboard where your project's security events, metrics, and dynamic rules are managed in real time.
-- **[playground.guard-core.com](https://playground.guard-core.com)** — a sandbox environment for experimenting with Guard configurations before wiring them into production.
-- **[guard-core.com](https://guard-core.com)** — the umbrella product site with ecosystem overview and adapter matrix.
+- **[app.guard-core.com](https://app.guard-core.com)** - the dashboard where your project's security events, metrics, and dynamic rules are managed in real time.
+- **[playground.guard-core.com](https://playground.guard-core.com)** - a sandbox environment for experimenting with Guard configurations before wiring them into production.
+- **[guard-core.com](https://guard-core.com)** - the umbrella product site with ecosystem overview and adapter matrix.
 
 ___
 
 ## Quick Start
 
-Guard Agent is embedded by each framework's adapter — enable it via the adapter's `SecurityConfig`. The following example uses the FastAPI adapter; Flask, Django, and Tornado adapters expose analogous interfaces (see [Installation](installation.md) for per-adapter setup).
+Guard Agent is embedded by each framework's adapter - enable it via the adapter's `SecurityConfig`. The following example uses the FastAPI adapter; Flask, Django, and Tornado adapters expose analogous interfaces (see [Installation](installation.md) for per-adapter setup).
 
 ```python
 from fastapi import FastAPI
@@ -158,7 +158,7 @@ poetry add guard-agent
 pip install guard-agent
 ```
 
-The legacy `fastapi-guard-agent` name is still published as a meta-package that installs `guard-agent` transitively — existing installs keep working, but new projects should use `guard-agent` directly.
+The legacy `fastapi-guard-agent` name is still published as a meta-package that installs `guard-agent` transitively - existing installs keep working, but new projects should use `guard-agent` directly.
 
 ### System Requirements
 - Python 3.10 or higher (3.11+ recommended for optimal performance)
@@ -198,9 +198,9 @@ app.add_middleware(SecurityMiddleware, config=config)
 ### Advanced Usage Pattern
 
 !!! warning "Do not use this pattern with fastapi-guard"
-    The snippet below uses `guard_agent()` directly. If your app already uses `fastapi-guard`'s `SecurityMiddleware`, **do not** also call `guard_agent()` from your module-level code. The factory dispatches to `SyncGuardAgentHandler` when called from sync context (module load) and `GuardAgentHandler` when called from async context (the middleware's init) — they are **separate singletons**, and only the middleware's instance receives the telemetry stream. For fastapi-guard users, configure `agent_*` fields on `SecurityConfig` instead. See the [fastapi-guard Integration Guide](https://guard-core.github.io/fastapi-guard/latest/tutorial/integration/).
+    The snippet below uses `guard_agent()` directly. If your app already uses `fastapi-guard`'s `SecurityMiddleware`, **do not** also call `guard_agent()` from your module-level code. The factory dispatches to `SyncGuardAgentHandler` when called from sync context (module load) and `GuardAgentHandler` when called from async context (the middleware's init) - they are **separate singletons**, and only the middleware's instance receives the telemetry stream. For fastapi-guard users, configure `agent_*` fields on `SecurityConfig` instead. See the [fastapi-guard Integration Guide](https://guard-core.github.io/fastapi-guard/latest/tutorial/integration/).
 
-For specialized use cases that *don't* go through a framework adapter — custom event reporting in a worker, direct agent embedding in a non-adapter system, or sync-only frameworks (Flask, Django) integrated with `SyncGuardAgentHandler`:
+For specialized use cases that *don't* go through a framework adapter - custom event reporting in a worker, direct agent embedding in a non-adapter system, or sync-only frameworks (Flask, Django) integrated with `SyncGuardAgentHandler`:
 
 ```python
 from guard_agent import guard_agent, AgentConfig, SecurityEvent

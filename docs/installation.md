@@ -364,7 +364,7 @@ async def test():
 
 **Resolution Strategies**:
 
-1. Use a project-local virtual environment (recommended — this is what `uv` does by default):
+1. Use a project-local virtual environment (recommended - this is what `uv` does by default):
 
     ```bash
     uv sync
@@ -392,7 +392,7 @@ Following successful installation of `guard-agent`, proceed with:
 
 ### Get an API Key
 
-The agent reports to the Guard management platform. Sign in or create a project at [**app.guard-core.com**](https://app.guard-core.com) to obtain the `api_key` and `project_id` used in the configuration examples above. You can also experiment with the full Guard stack — no install required — at [**playground.guard-core.com**](https://playground.guard-core.com).
+The agent reports to the Guard management platform. Sign in or create a project at [**app.guard-core.com**](https://app.guard-core.com) to obtain the `api_key` and `project_id` used in the configuration examples above. You can also experiment with the full Guard stack - no install required - at [**playground.guard-core.com**](https://playground.guard-core.com).
 
 ## System Requirements Summary
 

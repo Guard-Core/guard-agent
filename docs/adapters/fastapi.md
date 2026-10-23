@@ -1,6 +1,6 @@
-# FastAPI Adapter — `fastapi-guard`
+# FastAPI Adapter - `fastapi-guard`
 
-Guard Agent integrates with FastAPI through the [`fastapi-guard`](https://pypi.org/project/fastapi-guard/) middleware. **You do not call the `guard_agent()` factory yourself** — `fastapi-guard`'s `SecurityMiddleware` creates the agent, wires it into the request pipeline, and drives its async lifecycle (start, flush loop, status loop, dynamic-rule loop, stop) for you.
+Guard Agent integrates with FastAPI through the [`fastapi-guard`](https://pypi.org/project/fastapi-guard/) middleware. **You do not call the `guard_agent()` factory yourself** - `fastapi-guard`'s `SecurityMiddleware` creates the agent, wires it into the request pipeline, and drives its async lifecycle (start, flush loop, status loop, dynamic-rule loop, stop) for you.
 
 The integration surface is *only* the `agent_*` fields on `SecurityConfig`. Past versions of this doc showed an explicit `AgentConfig` + `lifespan` pattern; that pattern silently creates a second singleton (`SyncGuardAgentHandler` from sync module-load context, vs the `GuardAgentHandler` the middleware controls) and the events you think are flowing don't reach the dashboard. **Do not use it.**
 
@@ -58,7 +58,7 @@ config = SecurityConfig(
     agent_enable_metrics=True,
     agent_guard_version=_GUARD_VERSION,
 
-    # Optional — pull dynamic rule updates from the dashboard
+    # Optional - pull dynamic rule updates from the dashboard
     enable_dynamic_rules=True,
     dynamic_rule_interval=60,
 )
@@ -81,11 +81,11 @@ config = SecurityConfig(
 )
 ```
 
-When `agent_project_encryption_key` is set, the agent posts to `POST /api/v1/events/encrypted` with the body encrypted client-side via AES-256-GCM. The encryption key is **paired** with a specific API key in the dashboard — mixing keys produces `HTTP 400: Failed to decrypt payload`.
+When `agent_project_encryption_key` is set, the agent posts to `POST /api/v1/events/encrypted` with the body encrypted client-side via AES-256-GCM. The encryption key is **paired** with a specific API key in the dashboard - mixing keys produces `HTTP 400: Failed to decrypt payload`.
 
 ## How the lifecycle is actually driven
 
-`SecurityMiddleware.__init__` calls `SecurityConfig.to_agent_config()` and passes the result to `guard_agent(agent_config)`, getting back a `GuardAgentHandler` singleton. On the first request, the middleware's lazy initializer (`_ensure_initialized`) calls `composite_handler.start()`, which in turn calls `agent_handler.start()` — that's what kicks off the buffer's auto-flush task, the status loop, and the dynamic-rules poller. On app shutdown the inverse happens via `composite_handler.stop()`.
+`SecurityMiddleware.__init__` calls `SecurityConfig.to_agent_config()` and passes the result to `guard_agent(agent_config)`, getting back a `GuardAgentHandler` singleton. On the first request, the middleware's lazy initializer (`_ensure_initialized`) calls `composite_handler.start()`, which in turn calls `agent_handler.start()` - that's what kicks off the buffer's auto-flush task, the status loop, and the dynamic-rules poller. On app shutdown the inverse happens via `composite_handler.stop()`.
 
 You don't see any of this in your code, and you don't need to.
 
@@ -101,5 +101,5 @@ For the decision tree across all three integration paths (standalone / SaaS / en
 ## Related
 
 - [`fastapi-guard` on GitHub](https://github.com/Guard-Core/fastapi-guard)
-- [`fastapi-guard` integration guide](https://guard-core.github.io/fastapi-guard/latest/tutorial/integration/) — full decision tree + pitfalls
+- [`fastapi-guard` integration guide](https://guard-core.github.io/fastapi-guard/latest/tutorial/integration/) - full decision tree + pitfalls
 - [Canonical full example](https://github.com/Guard-Core/guard-core-app/blob/master/examples/app.py) in `guard-core-app`

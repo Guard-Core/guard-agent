@@ -1,4 +1,4 @@
-# Tornado Adapter — `tornadoapi-guard`
+# Tornado Adapter - `tornadoapi-guard`
 
 Guard Agent integrates with Tornado through the [`tornadoapi-guard`](https://github.com/Guard-Core/tornadoapi-guard) middleware. Because Tornado is fully async, the agent's lifecycle is driven by `await security_middleware.initialize()` (starts the agent) and `await security_middleware.reset()` (stops it).
 
@@ -100,7 +100,7 @@ if __name__ == "__main__":
 ## How the agent is wired
 
 - `SecurityMiddleware(config=config)` reads `config.enable_agent`. When `True`, it calls `config.to_agent_config()` to auto-derive an `AgentConfig`, then `guard_agent(agent_config)` internally to instantiate the singleton handler (stored at `middleware.agent_handler`).
-- **`await middleware.initialize()`** is mandatory — it starts the agent's background flush loop on the current event loop. Without it, events buffer but never flush.
+- **`await middleware.initialize()`** is mandatory - it starts the agent's background flush loop on the current event loop. Without it, events buffer but never flush.
 - **`await middleware.reset()`** on shutdown stops the agent cleanly and ensures any buffered events are flushed before exit.
 - The middleware is passed to `tornado.web.Application` via the `security_middleware` kwarg; the decorator goes via `guard_decorator`.
 

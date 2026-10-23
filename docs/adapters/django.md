@@ -1,6 +1,6 @@
-# Django Adapter — `djapi-guard`
+# Django Adapter - `djapi-guard`
 
-Guard Agent integrates with Django through the [`djapi-guard`](https://pypi.org/project/djapi-guard/) middleware. The PyPI distribution is `djapi-guard`; the Python import path is `djangoapi_guard`. The middleware handles agent wiring internally — no custom `AppConfig.ready()` hook is required.
+Guard Agent integrates with Django through the [`djapi-guard`](https://pypi.org/project/djapi-guard/) middleware. The PyPI distribution is `djapi-guard`; the Python import path is `djangoapi_guard`. The middleware handles agent wiring internally - no custom `AppConfig.ready()` hook is required.
 
 ## Install
 
@@ -77,7 +77,7 @@ urlpatterns = [path("", views.root)]
 - `DjangoAPIGuard.__init__()` reads `settings.GUARD_SECURITY_CONFIG` during Django's middleware-loading phase.
 - When `config.enable_agent=True`, it calls `config.to_agent_config()` to auto-derive an `AgentConfig`, then `guard_agent(agent_config)` to instantiate the singleton handler. The handler is stored at `middleware.agent_handler`.
 - Because Django's request handling is synchronous by default, the agent's async methods (flush, send_event) run via `guard_core`'s sync-to-async bridge. No manual `start()`/`stop()` calls are required.
-- If your Django project is running under ASGI (e.g. with Daphne or Uvicorn + async views), the same middleware works — the bridge detects the event loop and dispatches natively when possible.
+- If your Django project is running under ASGI (e.g. with Daphne or Uvicorn + async views), the same middleware works - the bridge detects the event loop and dispatches natively when possible.
 
 ## Dashboard & Playground
 

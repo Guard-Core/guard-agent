@@ -1,6 +1,6 @@
-# Flask Adapter — `flaskapi-guard`
+# Flask Adapter - `flaskapi-guard`
 
-Guard Agent integrates with Flask through the [`flaskapi-guard`](https://pypi.org/project/flaskapi-guard/) extension. Flask is synchronous, so the extension handles the agent's lifecycle internally — no `lifespan` or manual `start()`/`stop()` calls are required.
+Guard Agent integrates with Flask through the [`flaskapi-guard`](https://pypi.org/project/flaskapi-guard/) extension. Flask is synchronous, so the extension handles the agent's lifecycle internally - no `lifespan` or manual `start()`/`stop()` calls are required.
 
 ## Install
 

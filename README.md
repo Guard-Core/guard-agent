@@ -69,8 +69,7 @@ ___
 </p>
 
 <p align="center">
-  Framework-agnostic security telemetry for Python web apps.<br>
-  Feeds the Guard dashboard with events, metrics, and dynamic rules from any supported adapter.
+  Framework-agnostic security telemetry for Python web apps.<br> Feeds the Guard dashboard with events, metrics, and dynamic rules from any supported adapter.
 </p>
 
 ---
@@ -80,13 +79,13 @@ ___
 ---
 
 Documentation & Platform
-========================
+------------------------
 
-- 🌐 **[guard-core.com](https://guard-core.com)** — marketing site & product overview
-- 📚 **[Documentation](https://guard-core.github.io/guard-agent/latest/)** — full technical documentation
-- 🎮 **[Playground](https://playground.guard-core.com)** — try the Guard stack in-browser, no install required
-- 📊 **[Dashboard](https://app.guard-core.com)** — real-time security events, metrics, and dynamic rules for your projects
-- 💬 **[Discord](https://discord.gg/ZW7ZJbjMkK)** — community & maintainer support
+- 🌐 **[guard-core.com](https://guard-core.com)** - marketing site & product overview
+- 📚 **[Documentation](https://guard-core.github.io/guard-agent/latest/)** - full technical documentation
+- 🎮 **[Playground](https://playground.guard-core.com)** - try the Guard stack in-browser, no install required
+- 📊 **[Dashboard](https://app.guard-core.com)** - real-time security events, metrics, and dynamic rules for your projects
+- 💬 **[Discord](https://discord.gg/ZW7ZJbjMkK)** - community & maintainer support
 
 ---
 
@@ -180,8 +179,8 @@ AI Coding Agents
 Key Features
 ------------
 
-- **Framework-Agnostic Core**: One agent, one dashboard — works with every Guard adapter (FastAPI, Flask, Django, Tornado) through a shared wire protocol.
-- **Automatic Integration**: Adapters wire the agent into their middleware automatically. Enable it through the adapter's `SecurityConfig` — no glue code required.
+- **Framework-Agnostic Core**: One agent, one dashboard - works with every Guard adapter (FastAPI, Flask, Django, Tornado) through a shared wire protocol.
+- **Automatic Integration**: Adapters wire the agent into their middleware automatically. Enable it through the adapter's `SecurityConfig` - no glue code required.
 - **High-Performance Architecture**: Built on asynchronous I/O principles to ensure zero performance impact on your application while maintaining real-time data collection capabilities.
 - **Enterprise-Grade Reliability**: Implements industry-standard resilience patterns including circuit breakers, exponential backoff with jitter, and intelligent retry mechanisms to guarantee data delivery.
 - **Intelligent Data Management**: Features multi-tier buffering with in-memory and optional Redis persistence, ensuring zero data loss during network interruptions or application restarts.
@@ -209,7 +208,7 @@ poetry add guard-agent
 pip install guard-agent
 ```
 
-> The legacy name `fastapi-guard-agent` is still published as a meta-package that installs `guard-agent` transitively — existing installs keep working, but new projects should use `guard-agent` directly.
+> The legacy name `fastapi-guard-agent` is still published as a meta-package that installs `guard-agent` transitively - existing installs keep working, but new projects should use `guard-agent` directly.
 
 Optional extras:
 
@@ -222,7 +221,7 @@ uv add "guard-agent[redis]"    # Enable Redis-backed event buffer
 Getting Started
 ---------------
 
-Guard Agent is embedded by your framework's adapter — you enable it through the adapter's `SecurityConfig` and drive its lifecycle appropriately for that framework. Each adapter's doc page covers the exact pattern; the FastAPI pattern below is the canonical async integration.
+Guard Agent is embedded by your framework's adapter - you enable it through the adapter's `SecurityConfig` and drive its lifecycle appropriately for that framework. Each adapter's doc page covers the exact pattern; the FastAPI pattern below is the canonical async integration.
 
 ### FastAPI example
 

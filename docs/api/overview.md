@@ -301,8 +301,8 @@ class AgentConfig(BaseModel):
 
 ##### Compression fields
 
-- `compression_enabled` (default `True`) — when set, the agent gzip-compresses every outgoing batch body whose JSON exceeds `compression_threshold` bytes and sends it with `Content-Encoding: gzip`. Smaller bodies skip compression. The Guard Core SaaS decompresses gzip request bodies via `GzipRequestMiddleware` before pydantic validation. Set `compression_enabled=False` only if your ingestion endpoint does not handle `Content-Encoding: gzip` request bodies.
-- `compression_threshold` (default `1024` bytes) — minimum body size in bytes before gzip kicks in. Tune lower for chatty deployments, higher to save CPU on small batches.
+- `compression_enabled` (default `True`) - when set, the agent gzip-compresses every outgoing batch body whose JSON exceeds `compression_threshold` bytes and sends it with `Content-Encoding: gzip`. Smaller bodies skip compression. The Guard Core SaaS decompresses gzip request bodies via `GzipRequestMiddleware` before pydantic validation. Set `compression_enabled=False` only if your ingestion endpoint does not handle `Content-Encoding: gzip` request bodies.
+- `compression_threshold` (default `1024` bytes) - minimum body size in bytes before gzip kicks in. Tune lower for chatty deployments, higher to save CPU on small batches.
 
 ##### Retry-After
 

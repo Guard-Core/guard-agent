@@ -22,6 +22,8 @@ KNOWN_EVENT_TYPES = [
     "ip_ban_refused",
     "ip_ban_evicted",
     "behavior_bucket_evicted",
+    "auth_verifier_error",
+    "response_body_unavailable",
     "rate_limited",
     "rate_limit_script_reloaded",
     "suspicious_request",

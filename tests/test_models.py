@@ -395,10 +395,16 @@ _KNOWN_EVENT_TYPES_PARITY_MINIMUM = (4, 0, 0)
 
 # Types the agent lists before guard-core sends them, so an agent release never
 # rejects a type the engine starts sending (the guard-core 4.5.0 stack sends
-# ip_ban_refused, ip_ban_evicted and behavior_bucket_evicted; the 4.4.0 PyPI
-# engine sends none of them).
+# ip_ban_refused, ip_ban_evicted, behavior_bucket_evicted, auth_verifier_error
+# and response_body_unavailable; the 4.4.0 PyPI engine sends none of them).
 _AGENT_AHEAD_OF_ENGINE = frozenset(
-    {"ip_ban_refused", "ip_ban_evicted", "behavior_bucket_evicted"}
+    {
+        "ip_ban_refused",
+        "ip_ban_evicted",
+        "behavior_bucket_evicted",
+        "auth_verifier_error",
+        "response_body_unavailable",
+    }
 )
 
 
@@ -445,3 +451,10 @@ def test_known_event_types_match_guard_core() -> None:
 
 def test_the_behavior_bucket_evicted_event_type_is_known() -> None:
     assert "behavior_bucket_evicted" in KNOWN_EVENT_TYPES
+
+
+@pytest.mark.parametrize(
+    "event_type", ["auth_verifier_error", "response_body_unavailable"]
+)
+def test_the_new_engine_event_types_are_known(event_type: str) -> None:
+    assert event_type in KNOWN_EVENT_TYPES

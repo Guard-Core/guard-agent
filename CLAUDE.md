@@ -8,7 +8,7 @@ Guard Agent is the framework-agnostic telemetry and monitoring agent for the Gua
 - **Package (PyPI)**: `guard-agent` v3.0.0
 - **Import path**: `guard_agent` (unchanged across the rename)
 - **Legacy PyPI alias**: `fastapi-guard-agent==1.2.0`, a meta-package that installs `guard-agent>=2.0.0,<3.0.0`
-- **Python**: 3.10-3.14
+- **Python**: 3.10-3.15
 - **Build**: Hatchling
 - **Package Manager**: `uv`
 - **License**: MIT
@@ -149,7 +149,7 @@ make local-test     # Run tests locally (uv run pytest -v --cov=guard_agent)
 make lint           # Lint via Docker (ruff + mypy)
 make fix            # Auto-fix with ruff
 make test           # Run tests via Docker (Python 3.10)
-make test-all       # Test all Python versions (3.10-3.14)
+make test-all       # Test all Python versions (3.10-3.15)
 make serve-docs     # Serve MkDocs documentation
 make lint-docs      # Lint markdown docs
 make fix-docs       # Fix markdown issues

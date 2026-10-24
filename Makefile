@@ -1,4 +1,4 @@
-PYTHON_VERSIONS = 3.10 3.11 3.12 3.13 3.14
+PYTHON_VERSIONS = 3.10 3.11 3.12 3.13 3.14 3.15
 DEFAULT_PYTHON = 3.10
 
 
@@ -159,7 +159,7 @@ test:
 
 
 .PHONY: test-all
-test-all: test-3.10 test-3.11 test-3.12 test-3.13 test-3.14
+test-all: test-3.10 test-3.11 test-3.12 test-3.13 test-3.14 test-3.15
 
 
 .PHONY: test-3.10
@@ -203,6 +203,14 @@ test-3.14:
 	@docker compose down -v guard-agent
 	@COMPOSE_BAKE=true PYTHON_VERSION=3.14 docker compose build guard-agent
 	@PYTHON_VERSION=3.14 docker compose run --rm guard-agent pytest -v --cov=.
+	@docker compose down --rmi all --remove-orphans -v
+	@docker system prune -f
+
+.PHONY: test-3.15
+test-3.15:
+	@docker compose down -v guard-agent
+	@COMPOSE_BAKE=true PYTHON_VERSION=3.15 docker compose build guard-agent
+	@PYTHON_VERSION=3.15 docker compose run --rm guard-agent pytest -v --cov=.
 	@docker compose down --rmi all --remove-orphans -v
 	@docker system prune -f
 

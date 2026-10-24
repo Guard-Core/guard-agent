@@ -18,7 +18,7 @@ jobs:
             To help us triage quickly, please make sure your report includes:
             - A clear reproduction (a short snippet or failing test is ideal)
             - Output of `python --version && uv --version`
-            - The Python version range supported (`>=3.10,<3.15`) and which version you're on
+            - The Python version range supported (`>=3.10,<3.16`) and which version you're on
             - `pip show guard-core guard-agent` so we can see installed versions
             - The framework adapter you're sending events from (fastapi-guard / flaskapi-guard / djangoapi-guard / tornadoapi-guard) and its version
             - Operating system, transport configuration (HTTP endpoint, encryption, batching), and Redis state if relevant

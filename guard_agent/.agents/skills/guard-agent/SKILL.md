@@ -24,7 +24,7 @@ pip install guard-agent           # or: uv add guard-agent
 pip install "guard-agent[redis]"  # optional: Redis-backed buffer persistence
 ```
 
-`guard-agent` is normally installed for you as an optional dependency when an adapter's `SecurityConfig` sets `enable_agent=True`. Requires Python 3.10-3.14.
+`guard-agent` is normally installed for you as an optional dependency when an adapter's `SecurityConfig` sets `enable_agent=True`. Requires Python 3.10-3.15.
 
 ## Setup
 

@@ -54,8 +54,8 @@ dev = [
     "httpx",
     "httpx2",
     "mypy",
-    "pip-audit",
-    "pre-commit",
+    "pip-audit; python_version >= '3.11'",
+    "pre-commit; python_version >= '3.11'",
     "psutil",
     "pytest",
     "pytest-asyncio",
@@ -297,6 +297,7 @@ ignore = []
 
 [tool.uv]
 exclude-newer = "7 days"
+override-dependencies = ["filelock>=4.2.1"]
 
 [tool.uv.exclude-newer-package]
 djapi-guard = "0 days"
@@ -304,6 +305,7 @@ fastapi-guard = "0 days"
 flaskapi-guard = "0 days"
 guard-core = "0 days"
 tornadoapi-guard = "0 days"
+virtualenv = "2026-10-23T00:00:00Z"
 
 [tool.deptry]
 exclude = ["tests", ".venv", "vulture_whitelist.py", "docs"]

@@ -10,7 +10,11 @@ from guard_agent._json_types import JsonValue
 from guard_agent._transport_lifecycle import TransportLifecycleMixin
 from guard_agent._version import __version__ as _AGENT_VERSION
 from guard_agent.encryption import EncryptionError
-from guard_agent.exceptions import PayloadTooLargeError, PermanentClientError
+from guard_agent.exceptions import (
+    GuardAgentError,
+    PayloadTooLargeError,
+    PermanentClientError,
+)
 from guard_agent.signing import sign_payload
 from guard_agent.utils import (
     RateLimitedError,
@@ -181,6 +185,11 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
             and endpoint in self._ENCRYPTED_ENDPOINTS
         )
 
+    def _require_client(self) -> httpx.AsyncClient:
+        if not self._client:
+            raise GuardAgentError("Failed to initialize HTTP client")
+        return self._client
+
     async def _make_request(
         self,
         method: str,
@@ -192,8 +201,7 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
         """Make HTTP request with proper error handling and optional encryption."""
         await self._ensure_client_for_current_process()
 
-        if not self._client:
-            raise Exception("Failed to initialize HTTP client")
+        self._require_client()
 
         if data:
             data = self._redact_sensitive_headers(data)
@@ -223,7 +231,7 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
         params: dict[str, str] | None = None,
     ) -> dict[str, JsonValue] | bool:
         """Dispatch the HTTP call by method/endpoint without error handling."""
-        assert self._client is not None
+        client = self._require_client()
         if method == "POST" and data:
             if self._is_encrypted_target(method, endpoint, data):
                 return await self._post_encrypted(data)
@@ -234,7 +242,7 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
                 extra["headers"] = headers
             if params:
                 extra["params"] = params
-            response = await self._client.get(url, **extra)
+            response = await client.get(url, **extra)
             if response.status_code == 304:
                 return NotModifiedResponse()
             result = await self._handle_response(response)
@@ -264,7 +272,7 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
         """POST an encrypted payload to the dedicated encrypted endpoint."""
         if not self._encryptor:
             raise EncryptionError("Encryptor not initialized")
-        assert self._client is not None
+        client = self._require_client()
 
         encrypted_payload = self._encryptor.encrypt(self._build_encrypted_payload(data))
         encrypted_data = {
@@ -286,14 +294,14 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
             return False
         body, headers = self._build_post_body(json_data)
         self.bytes_sent += len(body)
-        response = await self._client.post(encrypted_url, content=body, headers=headers)
+        response = await client.post(encrypted_url, content=body, headers=headers)
         return await self._handle_response(response)
 
     async def _post_unencrypted(
         self, url: str, data: Mapping[str, object]
     ) -> dict[str, JsonValue] | bool:
         """POST a plain JSON payload."""
-        assert self._client is not None
+        client = self._require_client()
         try:
             json_data = await safe_json_serialize(data)
         except SerializationError as e:
@@ -305,5 +313,5 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
             return False
         body, headers = self._build_post_body(json_data)
         self.bytes_sent += len(body)
-        response = await self._client.post(url, content=body, headers=headers)
+        response = await client.post(url, content=body, headers=headers)
         return await self._handle_response(response)

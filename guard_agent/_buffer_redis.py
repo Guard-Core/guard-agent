@@ -5,6 +5,7 @@ import time
 import uuid
 from collections import deque
 
+from guard_agent.exceptions import GuardAgentError
 from guard_agent.models import SecurityEvent, SecurityMetric
 from guard_agent.protocols import RedisHandlerProtocol
 from guard_agent.utils import safe_json_deserialize, safe_json_serialize
@@ -26,6 +27,11 @@ class BufferRedisMixin:
     _metric_redis_keys: dict[int, str]
     _pending_event_persists: dict[int, bool]
     _pending_metric_persists: dict[int, bool]
+
+    def _require_redis_handler(self) -> RedisHandlerProtocol:
+        if self.redis_handler is None:
+            raise GuardAgentError("Redis handler is not initialized")
+        return self.redis_handler
 
     def _get_event_condition(self) -> asyncio.Condition:
         raise NotImplementedError
@@ -165,8 +171,8 @@ class BufferRedisMixin:
 
     async def _load_events_from_redis(self) -> None:
         """Load persisted events from Redis."""
-        assert self.redis_handler is not None
-        event_keys = await self.redis_handler.keys("agent_events:*") or []
+        redis_handler = self._require_redis_handler()
+        event_keys = await redis_handler.keys("agent_events:*") or []
         for key in event_keys:
             await self._load_one_event_from_redis(key)
 
@@ -177,10 +183,10 @@ class BufferRedisMixin:
         forgotten first so the deque's own maxlen eviction never orphans
         a still-tracked Redis record.
         """
-        assert self.redis_handler is not None
+        redis_handler = self._require_redis_handler()
         try:
             short_key = key.split(":")[-1]
-            event_data = await self.redis_handler.get_key("agent_events", short_key)
+            event_data = await redis_handler.get_key("agent_events", short_key)
             if not event_data:
                 self.logger.warning(
                     f"Failed to load event from Redis key {key}: No data found for key"
@@ -200,8 +206,8 @@ class BufferRedisMixin:
 
     async def _load_metrics_from_redis(self) -> None:
         """Load persisted metrics from Redis."""
-        assert self.redis_handler is not None
-        metric_keys = await self.redis_handler.keys("agent_metrics:*") or []
+        redis_handler = self._require_redis_handler()
+        metric_keys = await redis_handler.keys("agent_metrics:*") or []
         for key in metric_keys:
             await self._load_one_metric_from_redis(key)
 
@@ -212,10 +218,10 @@ class BufferRedisMixin:
         forgotten first so the deque's own maxlen eviction never orphans
         a still-tracked Redis record.
         """
-        assert self.redis_handler is not None
+        redis_handler = self._require_redis_handler()
         try:
             short_key = key.split(":")[-1]
-            metric_data = await self.redis_handler.get_key("agent_metrics", short_key)
+            metric_data = await redis_handler.get_key("agent_metrics", short_key)
             if not metric_data:
                 self.logger.warning(
                     f"Failed to load metric from Redis key {key}: No data found for key"
@@ -236,13 +242,13 @@ class BufferRedisMixin:
     async def _delete_matching_redis_keys(
         self, namespace: str, pattern: str, limit: int | None = None
     ) -> None:
-        assert self.redis_handler is not None
-        keys = await self.redis_handler.keys(pattern) or []
+        redis_handler = self._require_redis_handler()
+        keys = await redis_handler.keys(pattern) or []
         if limit is not None:
             keys = sorted(keys)[:limit]
         for key in keys:
             key_name = key.split(":")[-1]
-            await self.redis_handler.delete(namespace, key_name)
+            await redis_handler.delete(namespace, key_name)
 
     async def _clear_events_from_redis(self, count: int) -> None:
         """Clear flushed events from Redis."""

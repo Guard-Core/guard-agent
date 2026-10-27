@@ -25,7 +25,10 @@ _NON_RETRYABLE_STATUS_CODES = (400, 404, 413, 422)
 
 
 def _iterate(value: object) -> Iterable[object]:
-    assert isinstance(value, Iterable)
+    if not isinstance(value, Iterable):
+        raise TypeError(
+            f"expected an iterable of events or metrics, got {type(value).__name__}"
+        )
     return value
 
 
@@ -151,14 +154,18 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
         self, data: Mapping[str, object]
     ) -> Mapping[str, object]:
         for event in _iterate(data.get("events", [])):
-            assert isinstance(event, dict)
+            if not isinstance(event, dict):
+                raise TypeError(f"expected an event object, got {type(event).__name__}")
             metadata = event.get("metadata")
             if isinstance(metadata, dict):
                 event["metadata"] = sanitize_headers(
                     metadata, self.config.sensitive_headers
                 )
         for metric in _iterate(data.get("metrics", [])):
-            assert isinstance(metric, dict)
+            if not isinstance(metric, dict):
+                raise TypeError(
+                    f"expected a metric object, got {type(metric).__name__}"
+                )
             tags = metric.get("tags")
             if isinstance(tags, dict):
                 metric["tags"] = sanitize_headers(tags, self.config.sensitive_headers)

@@ -137,7 +137,10 @@ class _Dumpable(Protocol):
 def _model_like_to_dict(value: object) -> dict[str, object]:
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
         return dataclasses.asdict(value)
-    assert isinstance(value, _Dumpable)
+    if not isinstance(value, _Dumpable):
+        raise TypeError(
+            f"expected a dataclass or a model_dump value, got {type(value).__name__}"
+        )
     return dict(value.model_dump())
 
 

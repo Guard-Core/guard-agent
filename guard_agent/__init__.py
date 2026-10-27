@@ -26,6 +26,7 @@ from guard_agent.protocols import (
     AgentHandlerProtocol,
     BufferProtocol,
     RedisHandlerProtocol,
+    SyncRedisHandlerProtocol,
     TransportProtocol,
 )
 from guard_agent.transport import HTTPTransport
@@ -58,6 +59,7 @@ __all__ = [
     "TransportProtocol",
     "BufferProtocol",
     "RedisHandlerProtocol",
+    "SyncRedisHandlerProtocol",
     "generate_batch_id",
     "get_current_timestamp",
     "hash_ip",

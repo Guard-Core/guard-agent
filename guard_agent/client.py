@@ -10,10 +10,15 @@ from typing import TypeVar
 from guard_agent._client_ingest import IngestMixin
 from guard_agent._client_loops import LoopsMixin
 from guard_agent._json_types import JsonValue
+from guard_agent._sync_redis_adapter import as_async_redis_handler
 from guard_agent.buffer import EventBuffer
 from guard_agent.logging_utils import setup_agent_logging
 from guard_agent.models import AgentConfig, DynamicRules
-from guard_agent.protocols import AgentHandlerProtocol, RedisHandlerProtocol
+from guard_agent.protocols import (
+    AgentHandlerProtocol,
+    RedisHandlerProtocol,
+    SyncRedisHandlerProtocol,
+)
 from guard_agent.transport import HTTPTransport
 from guard_agent.utils import validate_config
 
@@ -208,8 +213,10 @@ class SyncGuardAgentHandler:
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         return future.result()
 
-    def initialize_redis(self, redis_handler: RedisHandlerProtocol) -> None:
-        self._run(self._inner.initialize_redis(redis_handler))
+    def initialize_redis(
+        self, redis_handler: SyncRedisHandlerProtocol | RedisHandlerProtocol
+    ) -> None:
+        self._run(self._inner.initialize_redis(as_async_redis_handler(redis_handler)))
 
     def start(self) -> None:
         self._run(self._inner.start())

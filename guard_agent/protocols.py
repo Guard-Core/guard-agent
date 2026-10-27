@@ -47,6 +47,50 @@ class RedisHandlerProtocol(Protocol):
 
 
 @runtime_checkable
+class SyncRedisHandlerProtocol(Protocol):
+    """Blocking mirror of ``RedisHandlerProtocol``, for the sync (WSGI) engines.
+
+    WHAT: the same namespaced key-value store, with plain (non-awaitable)
+    returns; guard-core's sync tree hands its sync Redis handler to the agent
+    through this shape.
+    WHEN: ``SyncGuardAgentHandler.initialize_redis`` accepts it; the agent runs
+    each call on a worker thread, never on the agent's event loop.
+    HOW: implement a thin adapter over a blocking Redis client. Reads return
+    ``None`` on a miss (never raise for absent keys); TTLs are in seconds.
+    """
+
+    def get_key(self, namespace: str, key: str) -> str | None:
+        """Return the value stored at ``namespace:key``, or ``None`` if absent."""
+        ...
+
+    def set_key(
+        self, namespace: str, key: str, value: str, ttl: int | None = None
+    ) -> bool | None:
+        """Store ``value`` at ``namespace:key``, expiring after ``ttl`` seconds.
+
+        ``ttl=None`` persists with no expiry. Returns the backend's set result
+        (truthy on success) or ``None`` when the backend reports nothing.
+        """
+        ...
+
+    def delete(self, namespace: str, key: str) -> int | None:
+        """Delete ``namespace:key``; return the number of keys removed (0 if none)."""
+        ...
+
+    def keys(self, pattern: str) -> list[str] | None:
+        """Return keys matching ``pattern``, or ``None`` when none can be listed."""
+        ...
+
+    def initialize(self) -> None:
+        """Open the connection/pool. Called once at startup before any access."""
+        ...
+
+    def get_connection(self) -> object:
+        """Return a raw client for operations not covered by this protocol."""
+        ...
+
+
+@runtime_checkable
 class TransportProtocol(Protocol):
     """Carries events, metrics and status to the collector, and pulls rules back.
 

@@ -11,6 +11,10 @@ from guard_agent.transport import HTTPTransport
 from guard_agent.utils import get_current_timestamp
 
 
+def _number_or_none(value: JsonValue) -> float | None:
+    return value if isinstance(value, (int, float)) else None
+
+
 class StatusMixin:
     config: AgentConfig
     logger: logging.Logger
@@ -71,9 +75,7 @@ class StatusMixin:
             events_sent=self.events_sent,
             events_failed=self.events_failed,
             buffer_size=buffer_size,
-            last_flush=last_flush_time
-            if isinstance(last_flush_time, (int, float))
-            else None,
+            last_flush=_number_or_none(last_flush_time),
             errors=errors,
             rules_stale=rules_are_stale(
                 self._cached_rules, self._last_successful_check, time.monotonic()

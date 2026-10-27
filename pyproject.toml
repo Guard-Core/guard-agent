@@ -184,6 +184,28 @@ warn_no_return = true
 warn_unreachable = true
 exclude = ["vulture_whitelist.py", ".venv"]
 
+# D-189 Any ratchet: begin (shrink the list, never grow it; tests/test_any_ratchet.py holds the line)
+[[tool.mypy.overrides]]
+module = "guard_agent.*"
+disallow_any_explicit = true
+
+# modules not clean yet, each with the kind of value that still needs a real type
+[[tool.mypy.overrides]]
+module = [
+    "guard_agent._buffer_queue",  # callback type
+    "guard_agent._client_flush",  # collaborator slot
+    "guard_agent._client_loops",  # collaborator slot
+    "guard_agent._client_status",  # collaborator slot
+    "guard_agent._transport_lifecycle",  # open value
+    "guard_agent._transport_send",  # JSON payload
+    "guard_agent.buffer",  # open value
+    "guard_agent.client",  # open value
+    "guard_agent.encryption",  # JSON payload
+    "guard_agent.models",  # open value
+]
+disallow_any_explicit = false
+# D-189 Any ratchet: end
+
 [[tool.mypy.overrides]]
 module = "httpx.*"
 follow_imports = "skip"

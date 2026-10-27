@@ -3,6 +3,32 @@ Release Notes
 
 ___
 
+Unreleased
+----------
+
+Behavior changes since v3.2.4
+-----------------------------
+
+### Changed
+
+- **`DynamicRules.emergency_whitelist_only` now defaults to `True`.** A rules payload that does not carry the field now keeps a lockdown on instead of lifting it. Operators who relied on the old default of `False` must send `emergency_whitelist_only: false` explicitly. No upgrade weakens a lockdown (D-33), and the engines and agents of every family share this default.
+- **`DynamicRules.ttl` is clamped into 60..86400 seconds and a `null` ttl reads as 300.** The default is unchanged at 300. A value outside the range is moved to the nearest bound instead of being kept as sent, and the ttl is also the offline grace period for the cached rules.
+- **The `block` overflow policy no longer waits indefinitely.** A full buffer under `buffer_overflow_policy="block"` now waits at most `buffer_block_timeout` seconds (new `AgentConfig` field, default 1.0) and then drops the new entry with a sampled warning, so an unreachable agent cannot hang the request path.
+- **Rule fetches and status calls have their own rate budgets.** Rule fetches and status each get 10 calls per 60 seconds, telemetry keeps 100 per 60 seconds. On the rules path a limiter wait no longer consumes a retry attempt, and a permanently rejected rules GET (a 4xx the server will not change) is no longer retried.
+- **Wrong-shape payloads raise `TypeError`, a missing Redis handler or HTTP client raises `GuardAgentError`.** These guards were `assert` statements that vanish under `python -O`, and the client initialization failure was a bare `Exception`. The dispatch path still catches them, so a malformed batch fails the same way. Code that caught `AssertionError` or matched on the bare `Exception` type must catch `TypeError` or `GuardAgentError`.
+- **`on_error` and `SecurityEvent.metadata` are typed `dict[str, object]` instead of `dict[str, Any]`.** Runtime behavior is unchanged. Type checkers now require narrowing a value before use.
+
+### Added
+
+- **Conditional rules polling.** The agent sends `If-None-Match` and `last_rule_id` / `last_rule_version` on the rules GET and treats a 304 as unchanged. The rules are also checked on every call with one shared in-flight request, and the cached rules are served when a fetch fails.
+- **`AgentStatus.rules_stale` and `AgentStatus.rules_last_checked`.** `rules_stale` is true when the SaaS has failed for longer than the rules ttl.
+- **`DynamicRules.is_platform_default`**, which the SaaS sends on its platform default rule shape and which the model used to drop.
+- **Event types** `ip_ban_refused`, `ip_ban_evicted`, `behavior_bucket_evicted`, `auth_verifier_error` and `response_body_unavailable` are accepted in `KNOWN_EVENT_TYPES`.
+- **`SyncRedisHandlerProtocol`**, exported from `guard_agent`. `SyncGuardAgentHandler` now drives the sync engine's Redis handler without awaiting it.
+- **Python 3.15 support** (`requires-python` is now `>=3.10,<3.16`).
+
+___
+
 v3.2.4 (2026-10-15)
 -------------------
 

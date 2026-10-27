@@ -1,18 +1,21 @@
 import logging
 import time
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import Literal
 
+from guard_agent._json_types import JsonValue
 from guard_agent._rules_staleness import rules_are_stale
+from guard_agent.buffer import EventBuffer
 from guard_agent.models import AgentConfig, AgentStatus, DynamicRules
+from guard_agent.transport import HTTPTransport
 from guard_agent.utils import get_current_timestamp
 
 
 class StatusMixin:
     config: AgentConfig
     logger: logging.Logger
-    buffer: Any
-    transport: Any
+    buffer: EventBuffer
+    transport: HTTPTransport
     _start_time: float
     _running: bool
     events_sent: int
@@ -36,6 +39,7 @@ class StatusMixin:
 
         transport_stats = self.transport.get_stats()
         buffer_stats = self.buffer.get_stats()
+        last_flush_time = buffer_stats.get("last_flush_time")
 
         status: Literal["healthy", "degraded", "failed"] = "healthy"
         errors: list[str] = []
@@ -67,7 +71,9 @@ class StatusMixin:
             events_sent=self.events_sent,
             events_failed=self.events_failed,
             buffer_size=buffer_size,
-            last_flush=buffer_stats.get("last_flush_time"),
+            last_flush=last_flush_time
+            if isinstance(last_flush_time, (int, float))
+            else None,
             errors=errors,
             rules_stale=rules_are_stale(
                 self._cached_rules, self._last_successful_check, time.monotonic()
@@ -81,7 +87,7 @@ class StatusMixin:
             ),
         )
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> dict[str, JsonValue]:
         return {
             "running": self._running,
             "uptime": time.time() - self._start_time,

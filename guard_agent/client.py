@@ -4,16 +4,20 @@ import os
 import threading
 import time
 from collections import deque
-from typing import Any
+from collections.abc import Coroutine
+from typing import TypeVar
 
 from guard_agent._client_ingest import IngestMixin
 from guard_agent._client_loops import LoopsMixin
+from guard_agent._json_types import JsonValue
 from guard_agent.buffer import EventBuffer
 from guard_agent.logging_utils import setup_agent_logging
 from guard_agent.models import AgentConfig, DynamicRules
 from guard_agent.protocols import AgentHandlerProtocol, RedisHandlerProtocol
 from guard_agent.transport import HTTPTransport
 from guard_agent.utils import validate_config
+
+_T = TypeVar("_T")
 
 
 class GuardAgentHandler(IngestMixin, LoopsMixin, AgentHandlerProtocol):
@@ -200,7 +204,7 @@ class SyncGuardAgentHandler:
         asyncio.set_event_loop(loop)
         loop.run_forever()
 
-    def _run(self, coro: Any) -> Any:
+    def _run(self, coro: Coroutine[object, object, _T]) -> _T:
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         return future.result()
 
@@ -216,10 +220,10 @@ class SyncGuardAgentHandler:
         if self._thread.is_alive():
             self._thread.join(timeout=5)
 
-    def send_event(self, event: Any) -> None:
+    def send_event(self, event: object) -> None:
         self._run(self._inner.send_event(event))
 
-    def send_metric(self, metric: Any) -> None:
+    def send_metric(self, metric: object) -> None:
         self._run(self._inner.send_metric(metric))
 
     def flush_buffer(self) -> None:
@@ -233,7 +237,7 @@ class SyncGuardAgentHandler:
         result: bool = self._run(self._inner.health_check())
         return result
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> dict[str, JsonValue]:
         return self._inner.get_stats()
 
 

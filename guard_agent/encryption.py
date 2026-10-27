@@ -1,11 +1,13 @@
 import base64
 import json
 import os
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
 from uuid import UUID
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+from guard_agent._json_types import JsonValue
 
 
 class EncryptionError(Exception):
@@ -18,7 +20,7 @@ class EncryptionConfigError(RuntimeError):
     """Raised when encryption initialization fails; plaintext fallback is forbidden."""
 
 
-def _default_json_handler(obj: Any) -> str:
+def _default_json_handler(obj: object) -> str:
     """Handle non-serializable objects during JSON encoding."""
     if isinstance(obj, datetime):
         return obj.isoformat()
@@ -85,7 +87,9 @@ class PayloadEncryptor:
         except Exception as e:
             raise EncryptionError(f"Invalid project key format: {e}") from e
 
-    def encrypt(self, data: dict[str, Any], associated_data: str | None = None) -> str:
+    def encrypt(
+        self, data: Mapping[str, object], associated_data: str | None = None
+    ) -> str:
         """
         Encrypt a telemetry payload with AES-256-GCM.
 
@@ -129,7 +133,7 @@ class PayloadEncryptor:
 
     def decrypt(
         self, encrypted_data: str, associated_data: str | None = None
-    ) -> dict[str, Any]:
+    ) -> dict[str, JsonValue]:
         """
         Decrypt an encrypted payload (primarily for testing).
 
@@ -158,7 +162,7 @@ class PayloadEncryptor:
             aad = associated_data.encode() if associated_data else None
             decrypted = self._cipher.decrypt(nonce, ciphertext, aad)
 
-            result: dict[str, Any] = json.loads(decrypted.decode())
+            result: dict[str, JsonValue] = json.loads(decrypted.decode())
             return result
 
         except Exception as e:

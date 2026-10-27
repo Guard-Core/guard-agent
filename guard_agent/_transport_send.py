@@ -1,8 +1,8 @@
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable
-from typing import Any
+from collections.abc import Awaitable, Callable, Mapping
 
+from guard_agent._json_types import JsonValue
 from guard_agent._transport_dispatch import (
     ETaggedResponse,
     NotModifiedResponse,
@@ -208,7 +208,9 @@ class TransportSendMixin(TransportDispatchMixin):
             self.logger.error(f"Failed to send status: {str(e)}")
             return False
 
-    def _evaluate_send_result(self, result: Any, data_type: str) -> bool | None:
+    def _evaluate_send_result(
+        self, result: dict[str, JsonValue] | bool, data_type: str
+    ) -> bool | None:
         """Return True (accepted), False (partial failure), or None (retry)."""
         if isinstance(result, dict) and (
             result.get("success") is False or result.get("errors")
@@ -237,7 +239,7 @@ class TransportSendMixin(TransportDispatchMixin):
     async def _send_with_retry(
         self,
         endpoint: str,
-        data: dict[str, Any],
+        data: Mapping[str, object],
         data_type: str,
         limiter: RateLimiter | None = None,
     ) -> bool:
@@ -316,20 +318,20 @@ class TransportSendMixin(TransportDispatchMixin):
         endpoint: str,
         headers: dict[str, str] | None = None,
         params: dict[str, str] | None = None,
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, JsonValue] | None:
         """GET request with retry logic and circuit breaker."""
-        extra: dict[str, Any] = {}
-        if headers:
-            extra["headers"] = headers
-        if params:
-            extra["params"] = params
         for attempt in range(self.config.retry_attempts + 1):
             try:
                 while not await self.rules_rate_limiter.acquire():
                     await asyncio.sleep(self.rules_rate_limiter.get_retry_after())
 
                 response_data = await self.circuit_breaker.call(
-                    self._make_request, "GET", endpoint, None, **extra
+                    self._make_request,
+                    "GET",
+                    endpoint,
+                    None,
+                    headers or None,
+                    params or None,
                 )
 
                 if isinstance(response_data, dict):

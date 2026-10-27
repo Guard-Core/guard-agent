@@ -1,7 +1,7 @@
 import asyncio
 import time
 from collections.abc import Callable, Coroutine
-from typing import Any, TypeVar
+from typing import TypeVar
 
 from guard_agent._buffer_lifecycle import BufferLifecycleMixin
 from guard_agent._buffer_overflow import BLOCK_POLICY_POLL_INTERVAL, BufferOverflowMixin
@@ -21,7 +21,7 @@ class BufferQueueMixin(BufferOverflowMixin, BufferLifecycleMixin):
 
     def _spawn_persist(
         self,
-        persist: Callable[[T], Coroutine[Any, Any, None]],
+        persist: Callable[[T], Coroutine[object, object, None]],
         item: T,
         pending: dict[int, bool],
     ) -> None:

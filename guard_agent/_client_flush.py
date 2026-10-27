@@ -1,18 +1,25 @@
 import logging
 import time
-from typing import Any
+from typing import Protocol
 
+from guard_agent.buffer import EventBuffer
 from guard_agent.models import AgentConfig, SecurityEvent, SecurityMetric
 from guard_agent.utils import calculate_backoff_delay, fire_error_hook
 
 _PARTIAL_FAILURE_MAX_BACKOFF_SECONDS = 300.0
 
 
+class FlushTransport(Protocol):
+    async def send_events(self, events: list[SecurityEvent]) -> bool: ...
+
+    async def send_metrics(self, metrics: list[SecurityMetric]) -> bool: ...
+
+
 class FlushMixin:
     config: AgentConfig
     logger: logging.Logger
-    buffer: Any
-    transport: Any
+    buffer: EventBuffer
+    transport: FlushTransport
     events_sent: int
     metrics_sent: int
     events_failed: int
@@ -23,7 +30,7 @@ class FlushMixin:
     _metrics_retry_after: float
 
     def _fire_error_hook(
-        self, stage: str, exc: BaseException, context: dict[str, Any]
+        self, stage: str, exc: BaseException, context: dict[str, object]
     ) -> None:
         fire_error_hook(self.config.on_error, self.logger, stage, exc, context)
 

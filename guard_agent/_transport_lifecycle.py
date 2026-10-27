@@ -1,9 +1,9 @@
 import logging
 import os
-from typing import Any
 
 import httpx
 
+from guard_agent._json_types import JsonValue
 from guard_agent._version import __version__ as _AGENT_VERSION
 from guard_agent.encryption import (
     EncryptionConfigError,
@@ -132,11 +132,11 @@ class TransportLifecycleMixin:
             await self._client.aclose()
 
     def _fire_error_hook(
-        self, stage: str, exc: BaseException, context: dict[str, Any]
+        self, stage: str, exc: BaseException, context: dict[str, object]
     ) -> None:
         fire_error_hook(self.config.on_error, self.logger, stage, exc, context)
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> dict[str, JsonValue]:
         """Get transport statistics."""
         return {
             "requests_sent": self.requests_sent,

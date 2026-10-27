@@ -3,13 +3,13 @@ import itertools
 import logging
 import time
 from collections import deque
-from typing import Any
 
 from guard_agent._client_flush import FlushMixin
 from guard_agent._client_status import StatusMixin
 from guard_agent._rules_staleness import RULES_STALE_WARNING_INTERVAL, rules_are_stale
 from guard_agent.models import AgentConfig, DynamicRules
 from guard_agent.protocols import TransportProtocol
+from guard_agent.transport import HTTPTransport
 
 # The loop yields to an outside caller (the engine) for this many agent
 # intervals, or engine gaps when those are longer.
@@ -60,7 +60,9 @@ class RulesMixin:
         finally:
             self._next_rules_call_is_the_loops = False
 
-    def _clear_rules_inflight(self, _finished: "asyncio.Future[Any]") -> None:
+    def _clear_rules_inflight(
+        self, _finished: "asyncio.Future[DynamicRules | None]"
+    ) -> None:
         # A new request starts only once this one cleared, so nothing newer is lost.
         self._rules_inflight = None
 
@@ -138,7 +140,7 @@ class RulesMixin:
 class LoopsMixin(FlushMixin, StatusMixin, RulesMixin):
     config: AgentConfig
     logger: logging.Logger
-    transport: Any
+    transport: HTTPTransport
     _running: bool
     _loop_error_log_threshold: int
     _flush_consecutive_failures: int

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from pytest import LogCaptureFixture
 
-from guard_agent._client_flush import FlushMixin
+from guard_agent._client_flush import FlushMixin, FlushTransport
 from guard_agent.buffer import EventBuffer
 from guard_agent.exceptions import BufferFullError, GuardAgentError
 from guard_agent.models import AgentConfig, SecurityEvent, SecurityMetric
@@ -102,7 +102,9 @@ class _FlushHost(FlushMixin):
     """Minimal host exercising the real FlushMixin._flush_events /
     _flush_metrics against a real buffer and a scripted transport."""
 
-    def __init__(self, config: AgentConfig, buffer: EventBuffer, transport: object):
+    def __init__(
+        self, config: AgentConfig, buffer: EventBuffer, transport: FlushTransport
+    ):
         import logging
 
         self.config = config
@@ -322,8 +324,14 @@ class TestBufferBlockPolicyStarvation:
             async def send_events(self, events: list[SecurityEvent]) -> bool:
                 raise RuntimeError("boom")
 
+            async def send_metrics(self, metrics: list[SecurityMetric]) -> bool:
+                raise RuntimeError("boom")
+
         class SucceedingTransport:
             async def send_events(self, events: list[SecurityEvent]) -> bool:
+                return True
+
+            async def send_metrics(self, metrics: list[SecurityMetric]) -> bool:
                 return True
 
         host = _FlushHost(config, buffer, RaisingTransport())
@@ -374,8 +382,14 @@ class TestBufferBlockPolicyStarvation:
             async def send_metrics(self, metrics: list[SecurityMetric]) -> bool:
                 raise RuntimeError("boom")
 
+            async def send_events(self, events: list[SecurityEvent]) -> bool:
+                raise RuntimeError("boom")
+
         class SucceedingTransport:
             async def send_metrics(self, metrics: list[SecurityMetric]) -> bool:
+                return True
+
+            async def send_events(self, events: list[SecurityEvent]) -> bool:
                 return True
 
         host = _FlushHost(config, buffer, RaisingTransport())
@@ -430,6 +444,9 @@ class TestFlushBoundaryExceptionHandling:
             async def send_events(self, events: list[SecurityEvent]) -> bool:
                 raise asyncio.CancelledError()
 
+            async def send_metrics(self, metrics: list[SecurityMetric]) -> bool:
+                raise asyncio.CancelledError()
+
         host = _FlushHost(config, buffer, CancellingTransport())
 
         event = _make_named_event("e1")
@@ -462,6 +479,9 @@ class TestFlushBoundaryExceptionHandling:
             async def send_metrics(self, metrics: list[SecurityMetric]) -> bool:
                 raise asyncio.CancelledError()
 
+            async def send_events(self, events: list[SecurityEvent]) -> bool:
+                raise asyncio.CancelledError()
+
         host = _FlushHost(config, buffer, CancellingTransport())
 
         metric = _make_named_metric(1.0)
@@ -491,6 +511,9 @@ class TestFlushBoundaryExceptionHandling:
 
         class RaisingTransport:
             async def send_events(self, events: list[SecurityEvent]) -> bool:
+                raise ValueError("boom")
+
+            async def send_metrics(self, metrics: list[SecurityMetric]) -> bool:
                 raise ValueError("boom")
 
         host = _FlushHost(config, buffer, RaisingTransport())

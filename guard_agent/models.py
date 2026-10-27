@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import Literal
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
@@ -179,7 +179,7 @@ class AgentConfig(BaseModel):
         description="HMAC-SHA256 secret for X-Payload-Signature header",
     )
 
-    on_error: Callable[[str, BaseException, dict[str, Any]], None] | None = Field(
+    on_error: Callable[[str, BaseException, dict[str, object]], None] | None = Field(
         default=None,
         description=(
             "Optional best-effort callback invoked when a transport, encryption, "
@@ -243,7 +243,7 @@ class SecurityEvent(BaseModel):
     rule_type: str | None = None
     pattern_matched: str | None = None
     handler_name: str | None = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, object] = Field(default_factory=dict)
 
 
 class SecurityMetric(BaseModel):
@@ -352,7 +352,7 @@ class DynamicRules(BaseModel):
 
     @field_validator("ttl", mode="before")
     @classmethod
-    def _null_ttl_is_the_default(cls, value: Any) -> Any:
+    def _null_ttl_is_the_default(cls, value: object) -> object:
         return RULES_TTL_DEFAULT if value is None else value
 
     @field_validator("ttl")

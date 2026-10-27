@@ -2,9 +2,9 @@ import asyncio
 import logging
 from collections import deque
 from collections.abc import Awaitable, Callable
-from typing import Any
 
 from guard_agent._buffer_queue import BufferQueueMixin
+from guard_agent._json_types import JsonValue
 from guard_agent.models import AgentConfig, SecurityEvent, SecurityMetric
 from guard_agent.protocols import BufferProtocol, RedisHandlerProtocol
 
@@ -54,7 +54,7 @@ class EventBuffer(BufferQueueMixin, BufferProtocol):
         self.redis_handler = redis_handler
         await self._load_from_redis()
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> dict[str, JsonValue]:
         """Get buffer statistics."""
         return {
             "events_buffered": self.events_buffered,

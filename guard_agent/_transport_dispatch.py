@@ -1,9 +1,12 @@
 import asyncio
 import gzip
-from typing import Any, NoReturn
+import logging
+from collections.abc import Iterable, Mapping
+from typing import NoReturn
 
 import httpx
 
+from guard_agent._json_types import JsonValue
 from guard_agent._transport_lifecycle import TransportLifecycleMixin
 from guard_agent._version import __version__ as _AGENT_VERSION
 from guard_agent.encryption import EncryptionError
@@ -21,20 +24,25 @@ from guard_agent.utils import (
 _NON_RETRYABLE_STATUS_CODES = (400, 404, 413, 422)
 
 
-class NotModifiedResponse(dict[str, Any]):
+def _iterate(value: object) -> Iterable[object]:
+    assert isinstance(value, Iterable)
+    return value
+
+
+class NotModifiedResponse(dict[str, JsonValue]):
     """A GET answered 304: the caller's held copy is still current."""
 
 
-class ETaggedResponse(dict[str, Any]):
+class ETaggedResponse(dict[str, JsonValue]):
     """A GET body that carries the ETag of the response it came from."""
 
-    def __init__(self, data: dict[str, Any], etag: str | None) -> None:
+    def __init__(self, data: dict[str, JsonValue], etag: str | None) -> None:
         super().__init__(data)
         self.etag = etag
 
 
 class TransportResponseMixin:
-    logger: Any
+    logger: logging.Logger
 
     def _log_request_error(self, method: str, url: str, exc: Exception) -> None:
         """Classify and log a request-level exception."""
@@ -48,7 +56,7 @@ class TransportResponseMixin:
             label = "Unexpected error"
         self.logger.error(f"{label} for {method} {url}: {type(exc).__name__}: {exc!r}")
 
-    def _handle_200(self, response: httpx.Response) -> dict[str, Any] | bool:
+    def _handle_200(self, response: httpx.Response) -> dict[str, JsonValue] | bool:
         try:
             json_data = response.json()
         except Exception as exc:
@@ -73,7 +81,9 @@ class TransportResponseMixin:
             raise PayloadTooLargeError(error_text)
         raise PermanentClientError(status_code, error_text)
 
-    async def _handle_response(self, response: httpx.Response) -> dict[str, Any] | bool:
+    async def _handle_response(
+        self, response: httpx.Response
+    ) -> dict[str, JsonValue] | bool:
         """Handle HTTP response with proper error checking."""
         self.logger.debug(f"Response: {response.status_code} for {response.url}")
 
@@ -137,21 +147,25 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
             return gzip.compress(raw), headers
         return raw, headers
 
-    def _redact_sensitive_headers(self, data: dict[str, Any]) -> dict[str, Any]:
-        for event in data.get("events", []):
+    def _redact_sensitive_headers(
+        self, data: Mapping[str, object]
+    ) -> Mapping[str, object]:
+        for event in _iterate(data.get("events", [])):
+            assert isinstance(event, dict)
             metadata = event.get("metadata")
             if isinstance(metadata, dict):
                 event["metadata"] = sanitize_headers(
                     metadata, self.config.sensitive_headers
                 )
-        for metric in data.get("metrics", []):
+        for metric in _iterate(data.get("metrics", [])):
+            assert isinstance(metric, dict)
             tags = metric.get("tags")
             if isinstance(tags, dict):
                 metric["tags"] = sanitize_headers(tags, self.config.sensitive_headers)
         return data
 
     def _is_encrypted_target(
-        self, method: str, endpoint: str, data: dict[str, Any] | None
+        self, method: str, endpoint: str, data: Mapping[str, object] | None
     ) -> bool:
         return (
             method == "POST"
@@ -164,10 +178,10 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
         self,
         method: str,
         endpoint: str,
-        data: dict[str, Any] | None,
+        data: Mapping[str, object] | None,
         headers: dict[str, str] | None = None,
         params: dict[str, str] | None = None,
-    ) -> dict[str, Any] | bool:
+    ) -> dict[str, JsonValue] | bool:
         """Make HTTP request with proper error handling and optional encryption."""
         await self._ensure_client_for_current_process()
 
@@ -197,10 +211,10 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
         method: str,
         endpoint: str,
         url: str,
-        data: dict[str, Any] | None,
+        data: Mapping[str, object] | None,
         headers: dict[str, str] | None = None,
         params: dict[str, str] | None = None,
-    ) -> dict[str, Any] | bool:
+    ) -> dict[str, JsonValue] | bool:
         """Dispatch the HTTP call by method/endpoint without error handling."""
         assert self._client is not None
         if method == "POST" and data:
@@ -208,7 +222,7 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
                 return await self._post_encrypted(data)
             return await self._post_unencrypted(url, data)
         if method == "GET":
-            extra: dict[str, Any] = {}
+            extra: dict[str, object] = {}
             if headers:
                 extra["headers"] = headers
             if params:
@@ -222,22 +236,24 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
             return result
         raise ValueError(f"Unsupported method: {method}")
 
-    def _build_encrypted_payload(self, data: dict[str, Any]) -> dict[str, Any]:
+    def _build_encrypted_payload(self, data: Mapping[str, object]) -> dict[str, object]:
         """Serialize events/metrics for encryption."""
         return {
             "events": [
                 event.model_dump(mode="json") if hasattr(event, "model_dump") else event
-                for event in data.get("events", [])
+                for event in _iterate(data.get("events", []))
             ],
             "metrics": [
                 metric.model_dump(mode="json")
                 if hasattr(metric, "model_dump")
                 else metric
-                for metric in data.get("metrics", [])
+                for metric in _iterate(data.get("metrics", []))
             ],
         }
 
-    async def _post_encrypted(self, data: dict[str, Any]) -> dict[str, Any] | bool:
+    async def _post_encrypted(
+        self, data: Mapping[str, object]
+    ) -> dict[str, JsonValue] | bool:
         """POST an encrypted payload to the dedicated encrypted endpoint."""
         if not self._encryptor:
             raise EncryptionError("Encryptor not initialized")
@@ -267,8 +283,8 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
         return await self._handle_response(response)
 
     async def _post_unencrypted(
-        self, url: str, data: dict[str, Any]
-    ) -> dict[str, Any] | bool:
+        self, url: str, data: Mapping[str, object]
+    ) -> dict[str, JsonValue] | bool:
         """POST a plain JSON payload."""
         assert self._client is not None
         try:

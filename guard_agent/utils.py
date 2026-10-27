@@ -4,15 +4,20 @@ import json
 import logging
 import time
 import uuid
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import date, datetime, timezone
 from datetime import time as time_of_day
 from decimal import Decimal
 from enum import Enum
-from typing import Any
+from typing import ParamSpec, Protocol, TypeVar, runtime_checkable
 
+from guard_agent._json_types import JsonValue
 from guard_agent.exceptions import PermanentClientError
 from guard_agent.models import AgentConfig
+
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+_K = TypeVar("_K")
 
 
 class RateLimitedError(Exception):
@@ -59,7 +64,7 @@ _SCALAR_PASSTHROUGH_TYPES: tuple[type, ...] = (
 )
 
 
-def sanitize_headers(headers: Any, sensitive_headers: list[str]) -> Any:
+def sanitize_headers(headers: object, sensitive_headers: list[str]) -> object:
     """Remove sensitive headers from telemetry data.
 
     Recurses into nested dicts, lists, tuples, sets, and JSON-looking
@@ -73,13 +78,13 @@ def sanitize_headers(headers: Any, sensitive_headers: list[str]) -> Any:
     return _sanitize_value(headers, lowered, depth=0)
 
 
-def _normalize_key(key: Any) -> str:
+def _normalize_key(key: object) -> str:
     if isinstance(key, bytes):
         return key.decode("utf-8", errors="replace").strip().lower()
     return str(key).strip().lower()
 
 
-def _is_unclassifiable_bytes_key(key: Any) -> bool:
+def _is_unclassifiable_bytes_key(key: object) -> bool:
     if not isinstance(key, bytes):
         return False
     try:
@@ -89,14 +94,16 @@ def _is_unclassifiable_bytes_key(key: Any) -> bool:
     return False
 
 
-def _sanitize_value(value: Any, lowered_sensitive: set[str], depth: int) -> Any:
+def _sanitize_value(value: object, lowered_sensitive: set[str], depth: int) -> object:
     try:
         return _sanitize_value_unsafe(value, lowered_sensitive, depth)
     except Exception:
         return _REDACTED
 
 
-def _sanitize_value_unsafe(value: Any, lowered_sensitive: set[str], depth: int) -> Any:
+def _sanitize_value_unsafe(
+    value: object, lowered_sensitive: set[str], depth: int
+) -> object:
     if depth > _MAX_SANITIZE_DEPTH:
         return _REDACTED
     if isinstance(value, str):
@@ -116,22 +123,32 @@ def _sanitize_value_unsafe(value: Any, lowered_sensitive: set[str], depth: int) 
     return _REDACTED
 
 
-def _is_model_like(value: Any) -> bool:
+def _is_model_like(value: object) -> bool:
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
         return True
     return hasattr(value, "model_dump") and callable(value.model_dump)
 
 
-def _model_like_to_dict(value: Any) -> dict[Any, Any]:
+@runtime_checkable
+class _Dumpable(Protocol):
+    def model_dump(self) -> Mapping[str, object]: ...
+
+
+def _model_like_to_dict(value: object) -> dict[str, object]:
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
         return dataclasses.asdict(value)
+    assert isinstance(value, _Dumpable)
     return dict(value.model_dump())
 
 
+def _rebuild_like(original: object, items: object) -> object:
+    return type.__call__(type(original), items)
+
+
 def _sanitize_mapping(
-    value: Mapping[Any, Any], lowered_sensitive: set[str], depth: int
-) -> Any:
-    sanitized = {}
+    value: Mapping[_K, object], lowered_sensitive: set[str], depth: int
+) -> object:
+    sanitized: dict[_K, object] = {}
     for key, item in value.items():
         if (
             _is_unclassifiable_bytes_key(key)
@@ -143,26 +160,26 @@ def _sanitize_mapping(
     if isinstance(value, dict):
         return sanitized
     try:
-        mapping_type: Any = type(value)
-        return mapping_type(sanitized)
+        return _rebuild_like(value, sanitized)
     except Exception:
         return sanitized
 
 
 def _sanitize_sequence(
-    value: Sequence[Any], lowered_sensitive: set[str], depth: int
-) -> Any:
+    value: Sequence[object], lowered_sensitive: set[str], depth: int
+) -> object:
     sanitized = [_sanitize_value(item, lowered_sensitive, depth + 1) for item in value]
     if isinstance(value, list):
         return sanitized
     try:
-        sequence_type: Any = type(value)
-        return sequence_type(sanitized)
+        return _rebuild_like(value, sanitized)
     except Exception:
         return sanitized
 
 
-def _sanitize_set(value: Any, lowered_sensitive: set[str], depth: int) -> Any:
+def _sanitize_set(
+    value: set[object] | frozenset[object], lowered_sensitive: set[str], depth: int
+) -> object:
     sanitized_items = [
         _sanitize_value(item, lowered_sensitive, depth + 1) for item in value
     ]
@@ -185,7 +202,7 @@ def _sanitize_string_value(value: str, lowered_sensitive: set[str], depth: int) 
         return value
 
 
-def _parse_json_like(value: str) -> Any:
+def _parse_json_like(value: str) -> object:
     stripped = value.strip()
     if not stripped or stripped[0] not in '{["':
         return None
@@ -230,11 +247,11 @@ def get_current_timestamp() -> datetime:
 
 
 def fire_error_hook(
-    on_error: Callable[[str, BaseException, dict[str, Any]], None] | None,
+    on_error: Callable[[str, BaseException, dict[str, object]], None] | None,
     logger: logging.Logger,
     stage: str,
     exc: BaseException,
-    context: dict[str, Any],
+    context: dict[str, object],
 ) -> None:
     """Invoke the user's on_error callback, if any, without ever raising."""
     if on_error is None:
@@ -257,7 +274,7 @@ class SerializationError(Exception):
     """Raised when an object cannot be serialized to JSON for transport."""
 
 
-async def safe_json_serialize(obj: Any) -> str:
+async def safe_json_serialize(obj: object) -> str:
     """Serialize object to JSON; raise SerializationError on failure."""
     try:
         return json.dumps(obj, default=str, separators=(",", ":"))
@@ -266,7 +283,7 @@ async def safe_json_serialize(obj: Any) -> str:
         raise SerializationError(str(e)) from e
 
 
-async def safe_json_deserialize(json_str: str) -> dict[str, Any] | None:
+async def safe_json_deserialize(json_str: str) -> dict[str, JsonValue] | None:
     """Safely deserialize JSON string with error handling."""
     try:
         result = json.loads(json_str)
@@ -347,7 +364,12 @@ class CircuitBreaker:
         self.last_failure_time: float | None = None
         self.state = "CLOSED"
 
-    async def call(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+    async def call(
+        self,
+        func: Callable[_P, Awaitable[_R]],
+        *args: _P.args,
+        **kwargs: _P.kwargs,
+    ) -> _R:
         """Execute function with circuit breaker protection."""
         if self.state == "OPEN":
             if (

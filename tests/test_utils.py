@@ -1,6 +1,6 @@
 import dataclasses
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timezone
 from datetime import time as time_of_day
 from decimal import Decimal
@@ -32,6 +32,17 @@ from guard_agent.utils import (
 )
 
 
+def at(value: object, *path: object) -> object:
+    for step in path:
+        if isinstance(value, Mapping):
+            value = value[step]
+        else:
+            assert isinstance(value, Sequence)
+            assert isinstance(step, int)
+            value = value[step]
+    return value
+
+
 class TestUtils:
     def test_generate_batch_id(self) -> None:
         batch_id = generate_batch_id()
@@ -51,10 +62,11 @@ class TestUtils:
         sensitive_headers = ["authorization", "x-api-key"]
         sanitized = sanitize_headers(headers, sensitive_headers)
 
-        assert sanitized["Authorization"] == "[REDACTED]"
-        assert sanitized["X-Api-Key"] == "[REDACTED]"
-        assert sanitized["Content-Type"] == "application/json"
-        assert sanitized["Custom-Header"] == "value"
+        assert at(sanitized, "Authorization") == "[REDACTED]"
+        assert at(sanitized, "X-Api-Key") == "[REDACTED]"
+        assert at(sanitized, "Content-Type") == "application/json"
+        assert at(sanitized, "Custom-Header") == "value"
+        assert isinstance(sanitized, dict)
         assert len(sanitized) == 4
 
     def test_sanitize_headers_redacts_nested_dict(self) -> None:
@@ -63,8 +75,8 @@ class TestUtils:
         }
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert sanitized["outer"]["authorization"] == "[REDACTED]"
-        assert sanitized["outer"]["safe"] == "value"
+        assert at(sanitized, "outer", "authorization") == "[REDACTED]"
+        assert at(sanitized, "outer", "safe") == "value"
 
     def test_sanitize_headers_redacts_list_of_dicts(self) -> None:
         headers = {
@@ -75,9 +87,9 @@ class TestUtils:
         }
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert sanitized["items"][0]["authorization"] == "[REDACTED]"
-        assert sanitized["items"][1]["authorization"] == "[REDACTED]"
-        assert sanitized["items"][1]["safe"] == "value"
+        assert at(sanitized, "items", 0, "authorization") == "[REDACTED]"
+        assert at(sanitized, "items", 1, "authorization") == "[REDACTED]"
+        assert at(sanitized, "items", 1, "safe") == "value"
 
     def test_sanitize_headers_redacts_whole_subtree_past_depth_cap(self) -> None:
         secret = "deeply-nested-secret"
@@ -95,38 +107,38 @@ class TestUtils:
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert sanitized["a"]["b"]["c"]["safe"] == "value"
+        assert at(sanitized, "a", "b", "c", "safe") == "value"
 
     def test_sanitize_headers_matches_non_string_key(self) -> None:
         headers = {42: "value", "authorization": "secret"}
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert sanitized[42] == "value"
-        assert sanitized["authorization"] == "[REDACTED]"
+        assert at(sanitized, 42) == "value"
+        assert at(sanitized, "authorization") == "[REDACTED]"
 
     def test_sanitize_headers_redacts_tuple_value(self) -> None:
         headers = {"top": ({"authorization": "secret"},)}
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert isinstance(sanitized["top"], tuple)
-        assert sanitized["top"][0]["authorization"] == "[REDACTED]"
+        assert isinstance(at(sanitized, "top"), tuple)
+        assert at(sanitized, "top", 0, "authorization") == "[REDACTED]"
 
     def test_sanitize_headers_matches_key_with_surrounding_whitespace(self) -> None:
         headers = {"  Authorization  ": "secret"}
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert sanitized["  Authorization  "] == "[REDACTED]"
+        assert at(sanitized, "  Authorization  ") == "[REDACTED]"
 
     def test_sanitize_headers_walks_top_level_list(self) -> None:
         headers = [{"authorization": "secret"}, {"safe": "value"}]
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert sanitized[0]["authorization"] == "[REDACTED]"
-        assert sanitized[1]["safe"] == "value"
+        assert at(sanitized, 0, "authorization") == "[REDACTED]"
+        assert at(sanitized, 1, "safe") == "value"
 
     def test_sanitize_headers_redacts_json_string_value(self) -> None:
         body = json.dumps({"authorization": "secret", "safe": "value"})
@@ -134,7 +146,7 @@ class TestUtils:
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        reparsed = json.loads(sanitized["body"])
+        reparsed = json.loads(str(at(sanitized, "body")))
         assert reparsed["authorization"] == "[REDACTED]"
         assert reparsed["safe"] == "value"
 
@@ -143,7 +155,7 @@ class TestUtils:
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert sanitized["body"] == "{not valid json"
+        assert at(sanitized, "body") == "{not valid json"
 
     def test_sanitize_headers_redacts_oversized_json_looking_string(self) -> None:
         big = "{" + "a" * 9000 + "}"
@@ -151,7 +163,7 @@ class TestUtils:
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert sanitized["body"] == "[REDACTED]"
+        assert at(sanitized, "body") == "[REDACTED]"
 
     def test_sanitize_headers_never_raises_on_unwalkable_object(self) -> None:
         class Unwalkable:
@@ -162,12 +174,12 @@ class TestUtils:
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert sanitized["x"] is not None
+        assert at(sanitized, "x") is not None
 
     def test_sanitize_headers_passes_bytes_through_unchanged(self) -> None:
         sanitized = sanitize_headers({"x": b"raw-bytes"}, ["authorization"])
 
-        assert sanitized["x"] == b"raw-bytes"
+        assert at(sanitized, "x") == b"raw-bytes"
 
     def test_sanitize_headers_matches_bytes_key(self) -> None:
         sanitized = sanitize_headers(
@@ -175,15 +187,15 @@ class TestUtils:
             ["authorization"],
         )
 
-        assert sanitized[b"authorization"] == "[REDACTED]"
-        assert sanitized["Authorization"] == "[REDACTED]"
+        assert at(sanitized, b"authorization") == "[REDACTED]"
+        assert at(sanitized, "Authorization") == "[REDACTED]"
 
     def test_sanitize_headers_matches_bytes_key_with_invalid_utf8(self) -> None:
         sanitized = sanitize_headers(
             {b"Authorization": "secret", b"\xff\xfe": "keep"}, ["authorization"]
         )
 
-        assert sanitized[b"Authorization"] == "[REDACTED]"
+        assert at(sanitized, b"Authorization") == "[REDACTED]"
 
     def test_sanitize_headers_redacts_value_for_unclassifiable_bytes_key(
         self,
@@ -193,37 +205,37 @@ class TestUtils:
         sensitive rather than let its value through unclassified."""
         sanitized = sanitize_headers({b"\xff\xfe": "keep"}, ["authorization"])
 
-        assert sanitized[b"\xff\xfe"] == "[REDACTED]"
+        assert at(sanitized, b"\xff\xfe") == "[REDACTED]"
 
     def test_sanitize_headers_keeps_datetime_value_unchanged(self) -> None:
         when = datetime.now(timezone.utc)
         sanitized = sanitize_headers({"x": when}, ["authorization"])
 
-        assert sanitized["x"] is when
+        assert at(sanitized, "x") is when
 
     def test_sanitize_headers_keeps_date_value_unchanged(self) -> None:
         today = date.today()
         sanitized = sanitize_headers({"x": today}, ["authorization"])
 
-        assert sanitized["x"] is today
+        assert at(sanitized, "x") is today
 
     def test_sanitize_headers_keeps_time_value_unchanged(self) -> None:
         moment = time_of_day(12, 30)
         sanitized = sanitize_headers({"x": moment}, ["authorization"])
 
-        assert sanitized["x"] is moment
+        assert at(sanitized, "x") is moment
 
     def test_sanitize_headers_keeps_decimal_value_unchanged(self) -> None:
         amount = Decimal("19.99")
         sanitized = sanitize_headers({"x": amount}, ["authorization"])
 
-        assert sanitized["x"] is amount
+        assert at(sanitized, "x") is amount
 
     def test_sanitize_headers_keeps_uuid_value_unchanged(self) -> None:
         request_id = UUID("12345678-1234-5678-1234-567812345678")
         sanitized = sanitize_headers({"x": request_id}, ["authorization"])
 
-        assert sanitized["x"] is request_id
+        assert at(sanitized, "x") is request_id
 
     def test_sanitize_headers_keeps_enum_value_unchanged(self) -> None:
         class Color(Enum):
@@ -231,7 +243,7 @@ class TestUtils:
 
         sanitized = sanitize_headers({"x": Color.RED}, ["authorization"])
 
-        assert sanitized["x"] is Color.RED
+        assert at(sanitized, "x") is Color.RED
 
     def test_sanitize_headers_walks_dataclass_as_mapping(self) -> None:
         @dataclasses.dataclass
@@ -243,7 +255,7 @@ class TestUtils:
             {"x": Payload(authorization="secret", safe="value")}, ["authorization"]
         )
 
-        assert sanitized["x"] == {"authorization": "[REDACTED]", "safe": "value"}
+        assert at(sanitized, "x") == {"authorization": "[REDACTED]", "safe": "value"}
 
     def test_sanitize_headers_walks_pydantic_model_as_mapping(self) -> None:
         class Payload(BaseModel):
@@ -254,7 +266,7 @@ class TestUtils:
             {"x": Payload(authorization="secret", safe="value")}, ["authorization"]
         )
 
-        assert sanitized["x"] == {"authorization": "[REDACTED]", "safe": "value"}
+        assert at(sanitized, "x") == {"authorization": "[REDACTED]", "safe": "value"}
 
     def test_sanitize_headers_redacts_double_encoded_json_string(self) -> None:
         inner = json.dumps({"authorization": "secret", "safe": "value"})
@@ -263,7 +275,7 @@ class TestUtils:
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        reparsed_once = json.loads(sanitized["body"])
+        reparsed_once = json.loads(str(at(sanitized, "body")))
         reparsed_twice = json.loads(reparsed_once)
         assert reparsed_twice["authorization"] == "[REDACTED]"
         assert reparsed_twice["safe"] == "value"
@@ -273,7 +285,7 @@ class TestUtils:
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert sanitized["body"] == '"hello"'
+        assert at(sanitized, "body") == '"hello"'
 
     def test_sanitize_headers_leaves_unterminated_quoted_string_untouched(
         self,
@@ -282,7 +294,7 @@ class TestUtils:
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert sanitized["body"] == '"unterminated'
+        assert at(sanitized, "body") == '"unterminated'
 
     def test_sanitize_headers_keeps_scalar_types_unchanged(self) -> None:
         headers = {"a": 1, "b": 1.5, "c": True, "d": None}
@@ -299,17 +311,17 @@ class TestUtils:
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert sanitized["x"] == "[REDACTED]"
+        assert at(sanitized, "x") == "[REDACTED]"
 
     def test_sanitize_headers_rebuilds_set_and_frozenset(self) -> None:
         sanitized = sanitize_headers(
             {"a": {"x", "y"}, "b": frozenset({"x", "y"})}, ["authorization"]
         )
 
-        assert sanitized["a"] == {"x", "y"}
-        assert isinstance(sanitized["a"], set)
-        assert sanitized["b"] == frozenset({"x", "y"})
-        assert isinstance(sanitized["b"], frozenset)
+        assert at(sanitized, "a") == {"x", "y"}
+        assert isinstance(at(sanitized, "a"), set)
+        assert at(sanitized, "b") == frozenset({"x", "y"})
+        assert isinstance(at(sanitized, "b"), frozenset)
 
     def test_sanitize_string_value_keeps_original_when_rejson_fails(self) -> None:
         body = '{"authorization": "secret"}'
@@ -317,7 +329,7 @@ class TestUtils:
         with patch("guard_agent.utils.json.dumps", side_effect=TypeError("boom")):
             sanitized = sanitize_headers({"body": body}, ["authorization"])
 
-        assert sanitized["body"] == body
+        assert at(sanitized, "body") == body
 
     def test_sanitize_mapping_falls_back_to_plain_dict_when_type_rejects_rebuild(
         self,
@@ -396,7 +408,7 @@ class TestUtils:
 
         sanitized = sanitize_headers(headers, ["authorization"])
 
-        assert sanitized["x"] == "[REDACTED]"
+        assert at(sanitized, "x") == "[REDACTED]"
 
     def test_truncate_payload(self) -> None:
         long_payload = "This is a very long payload that needs to be truncated."

@@ -8,7 +8,6 @@ management platform.
 """
 
 import logging
-from typing import Any, cast
 
 from guard_agent._version import __version__
 from guard_agent.buffer import EventBuffer
@@ -89,11 +88,9 @@ def _mute_pydantic_plugin_instrumentation() -> None:
         return
     try:
         for model in (SecurityEvent, SecurityMetric, EventBatch):
-            plugin_settings = cast(
-                "dict[str, Any]",
-                model.model_config.setdefault("plugin_settings", {}),
-            )
+            plugin_settings = model.model_config.get("plugin_settings") or {}
             plugin_settings["logfire"] = {"record": "off"}
+            model.model_config["plugin_settings"] = plugin_settings
             model.model_rebuild(force=True)
     except Exception:
         logging.getLogger("guard_agent").warning(

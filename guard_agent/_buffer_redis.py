@@ -189,7 +189,7 @@ class BufferRedisMixin:
             event_dict = await safe_json_deserialize(event_data)
             if not event_dict:
                 return
-            event = SecurityEvent(**event_dict)
+            event = SecurityEvent.model_validate(event_dict)
             if self._is_event_buffer_full():
                 self._forget_oldest_event_key()
             self.event_buffer.append(event)
@@ -224,7 +224,7 @@ class BufferRedisMixin:
             metric_dict = await safe_json_deserialize(metric_data)
             if not metric_dict:
                 return
-            metric = SecurityMetric(**metric_dict)
+            metric = SecurityMetric.model_validate(metric_dict)
             if self._is_metric_buffer_full():
                 self._forget_oldest_metric_key()
             self.metric_buffer.append(metric)

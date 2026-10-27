@@ -1,4 +1,4 @@
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from guard_agent.models import AgentStatus, DynamicRules, SecurityEvent, SecurityMetric
 
@@ -15,12 +15,12 @@ class RedisHandlerProtocol(Protocol):
     on a miss (never raise for absent keys); TTLs are in seconds.
     """
 
-    async def get_key(self, namespace: str, key: str) -> Any:
+    async def get_key(self, namespace: str, key: str) -> str | None:
         """Return the value stored at ``namespace:key``, or ``None`` if absent."""
         ...
 
     async def set_key(
-        self, namespace: str, key: str, value: Any, ttl: int | None = None
+        self, namespace: str, key: str, value: str, ttl: int | None = None
     ) -> bool | None:
         """Store ``value`` at ``namespace:key``, expiring after ``ttl`` seconds.
 
@@ -41,7 +41,7 @@ class RedisHandlerProtocol(Protocol):
         """Open the connection/pool. Called once at startup before any access."""
         ...
 
-    def get_connection(self) -> Any:
+    def get_connection(self) -> object:
         """Return a raw client for operations not covered by this protocol."""
         ...
 
@@ -174,11 +174,11 @@ class AgentHandlerProtocol(Protocol):
         """Attach the shared Redis backend used for durable buffering."""
         ...
 
-    async def send_event(self, event: Any) -> None:
+    async def send_event(self, event: object) -> None:
         """Enqueue a security event for delivery. Must not block or raise."""
         ...
 
-    async def send_metric(self, metric: Any) -> None:
+    async def send_metric(self, metric: object) -> None:
         """Enqueue a metric for delivery. Must not block or raise."""
         ...
 

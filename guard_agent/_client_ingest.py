@@ -1,6 +1,6 @@
 import logging
-from typing import Any
 
+from guard_agent.buffer import EventBuffer
 from guard_agent.models import AgentConfig, SecurityEvent, SecurityMetric
 from guard_agent.utils import sanitize_headers
 
@@ -8,9 +8,9 @@ from guard_agent.utils import sanitize_headers
 class IngestMixin:
     config: AgentConfig
     logger: logging.Logger
-    buffer: Any
+    buffer: EventBuffer
 
-    async def send_event(self, event: Any) -> None:
+    async def send_event(self, event: object) -> None:
         if not self.config.enable_events:
             return
 
@@ -25,7 +25,7 @@ class IngestMixin:
         except Exception as e:
             self.logger.error(f"Failed to buffer event: {str(e)}")
 
-    async def send_metric(self, metric: Any) -> None:
+    async def send_metric(self, metric: object) -> None:
         if not self.config.enable_metrics:
             return
 
@@ -46,16 +46,16 @@ class IngestMixin:
         redacted = sanitize_headers(metric.tags, self.config.sensitive_headers)
         return metric.model_copy(update={"tags": redacted})
 
-    def _normalize_event(self, event: Any) -> SecurityEvent:
-        event_data: dict[str, Any] = {}
+    def _normalize_event(self, event: object) -> SecurityEvent:
+        event_data: dict[str, object] = {}
         for field_name in SecurityEvent.model_fields:
             if hasattr(event, field_name):
                 event_data[field_name] = getattr(event, field_name)
-        return SecurityEvent(**event_data)
+        return SecurityEvent.model_validate(event_data)
 
-    def _normalize_metric(self, metric: Any) -> SecurityMetric:
-        metric_data: dict[str, Any] = {}
+    def _normalize_metric(self, metric: object) -> SecurityMetric:
+        metric_data: dict[str, object] = {}
         for field_name in SecurityMetric.model_fields:
             if hasattr(metric, field_name):
                 metric_data[field_name] = getattr(metric, field_name)
-        return SecurityMetric(**metric_data)
+        return SecurityMetric.model_validate(metric_data)

@@ -27,6 +27,20 @@ Behavior changes since v3.2.4
 - **`SyncRedisHandlerProtocol`**, exported from `guard_agent`. `SyncGuardAgentHandler` now drives the sync engine's Redis handler without awaiting it.
 - **Python 3.15 support** (`requires-python` is now `>=3.10,<3.16`).
 
+### If you stay on guard-core 4.x
+
+Guard-agent 4.0.0 has no guard-core runtime requirement, so a guard-core 4.x install keeps working and takes these changes from the agent alone.
+
+- **A full `block` buffer no longer hangs the request path.** With `agent_buffer_overflow_policy="block"` (which guard-core 4.x passes through), the agent waits at most 1.0 second for space and then drops the new entry with a sampled warning. guard-core 4.x does not forward `buffer_block_timeout`, so the 1.0 default applies unless you build the `AgentConfig` yourself.
+- **The rules `ttl` is clamped into 60..86400 seconds and `null` reads as 300.** The agent uses it as the cache lifetime and the offline grace period of the held rules. guard-core 4.x does not read `ttl` itself.
+- **`DynamicRules.emergency_whitelist_only` defaults to `True`.** guard-core 4.x reads only `emergency_mode` and `emergency_whitelist` from the rules, so its lockdown behavior does not change. The new default is visible to code that reads the rules from the agent directly.
+- **Rule fetches and status calls have their own rate budgets** (10 per 60 seconds each, telemetry keeps 100), a limiter wait no longer uses up a retry, and a permanently rejected rules GET is not retried.
+- **Rules polling is conditional.** The agent sends `If-None-Match` and `last_rule_id` / `last_rule_version` and treats a 304 as unchanged.
+- **`AgentStatus` reports `rules_stale` and `rules_last_checked`**, and the agent logs a warning at most once an hour while the rules are stale.
+- **Wrong-shape payloads raise `TypeError` and a missing Redis handler or HTTP client raises `GuardAgentError`**, where `assert` statements stood before.
+- **`SyncGuardAgentHandler.initialize_redis` accepts a blocking Redis handler** (`SyncRedisHandlerProtocol`), and the five event types `ip_ban_refused`, `ip_ban_evicted`, `behavior_bucket_evicted`, `auth_verifier_error` and `response_body_unavailable` are in `KNOWN_EVENT_TYPES`.
+- **Python 3.15 is supported** (`requires-python` is `>=3.10,<3.16`).
+
 ___
 
 The parity release: agent feature surface locked across all four language ports (v3.1.0)

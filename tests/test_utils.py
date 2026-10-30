@@ -645,7 +645,9 @@ class TestUtils:
         backoff_factor: float,
         expected_errors: list[str],
     ) -> None:
-        config = AgentConfig(
+        # AgentConfig now refuses out-of-range numbers when it is built, so the
+        # cases that validate_config reports are built without validation.
+        config = AgentConfig.model_construct(
             api_key=api_key,
             endpoint=endpoint,
             buffer_size=buffer_size,

@@ -14,7 +14,7 @@ def config_with_retry() -> AgentConfig:
         endpoint="http://example.com",
         project_id="proj",
         retry_attempts=2,
-        backoff_factor=0.0,
+        backoff_factor=0.001,
         timeout=5,
     )
 

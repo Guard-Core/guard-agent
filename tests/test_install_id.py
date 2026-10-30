@@ -24,9 +24,9 @@ def test_second_call_returns_same_id(tmp_path: Path) -> None:
 def test_explicit_override_takes_precedence(tmp_path: Path) -> None:
     iid = resolve_install_id(
         state_path=tmp_path / "install-id",
-        override="custom-installation-id",
+        override="3f2504e0-4f89-41d3-9a0c-0305e82c3301",
     )
-    assert iid == "custom-installation-id"
+    assert iid == "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
 
 
 def test_id_is_uuid4_format(tmp_path: Path) -> None:

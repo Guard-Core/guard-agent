@@ -15,6 +15,11 @@ def _number_or_none(value: JsonValue) -> float | None:
     return value if isinstance(value, (int, float)) else None
 
 
+# A flush that fails this many times in a row makes the agent unhealthy; the
+# count resets with the first flush that delivers.
+_UNHEALTHY_AFTER_CONSECUTIVE_FLUSH_FAILURES = 3
+
+
 class StatusMixin:
     config: AgentConfig
     logger: logging.Logger
@@ -35,6 +40,11 @@ class StatusMixin:
     _status_consecutive_failures: int
     _rules_consecutive_failures: int
     _last_status_push_ok: bool | None
+    _events_failure_streak: int
+    _metrics_failure_streak: int
+
+    def _flush_failure_streak(self) -> int:
+        return max(self._events_failure_streak, self._metrics_failure_streak)
 
     async def get_status(self) -> AgentStatus:
         current_time = get_current_timestamp()
@@ -55,6 +65,11 @@ class StatusMixin:
         if buffer_size >= self.config.buffer_size * 0.9:
             status = "degraded"
             errors.append("Buffer nearly full")
+
+        streak = self._flush_failure_streak()
+        if streak > 0:
+            status = "degraded"
+            errors.append(f"Delivery is failing: {streak} consecutive flush failure(s)")
 
         if self.events_failed + self.metrics_failed > 0:
             failure_rate = (self.events_failed + self.metrics_failed) / max(
@@ -121,6 +136,12 @@ class StatusMixin:
 
             buffer_size = await self.buffer.get_buffer_size()
             if buffer_size >= self.config.buffer_size * 0.95:
+                return False
+
+            if (
+                self._flush_failure_streak()
+                >= _UNHEALTHY_AFTER_CONSECUTIVE_FLUSH_FAILURES
+            ):
                 return False
 
             total_sent = self.events_sent + self.metrics_sent

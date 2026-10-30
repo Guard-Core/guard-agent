@@ -231,6 +231,8 @@ class SyncGuardAgentHandler:
         self._loop.call_soon_threadsafe(self._loop.stop)
         if self._thread.is_alive():
             self._thread.join(timeout=5)
+        if not self._thread.is_alive() and not self._loop.is_running():
+            self._loop.close()
 
     def send_event(self, event: object) -> None:
         self._run(self._inner.send_event(event))

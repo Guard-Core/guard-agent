@@ -498,8 +498,10 @@ class TestGuardAgentHandler:
 
         await handler.flush_buffer()
 
-        assert handler.events_failed == len(test_events)
-        assert handler.metrics_failed == len(test_metrics)
+        assert handler.events_failed == 0
+        assert handler.metrics_failed == 0
+        assert handler._events_failure_streak == 1
+        assert handler._metrics_failure_streak == 1
         assert f"Failed to send {len(test_events)} events" in caplog.text
         assert f"Failed to send {len(test_metrics)} metrics" in caplog.text
         handler.buffer.confirm_event_redis_keys.assert_not_awaited()

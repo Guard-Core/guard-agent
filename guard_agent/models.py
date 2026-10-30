@@ -75,9 +75,9 @@ class AgentConfig(BaseModel):
         default=None, description="Project ID for organization"
     )
 
-    buffer_size: int = Field(default=100, description="Event buffer size")
+    buffer_size: int = Field(default=100, gt=0, description="Event buffer size")
     flush_interval: int = Field(
-        default=30, description="Buffer flush interval in seconds"
+        default=30, gt=0, description="Buffer flush interval in seconds"
     )
     dynamic_rule_interval: int = Field(
         default=300,
@@ -90,10 +90,13 @@ class AgentConfig(BaseModel):
         description="Interval in seconds between agent status reports",
     )
     high_watermark_ratio: float = Field(
-        default=0.8, description="Buffer occupancy ratio that triggers early flush"
+        default=0.8,
+        gt=0,
+        le=1,
+        description="Buffer occupancy ratio that triggers early flush",
     )
     max_concurrent_flushes: int = Field(
-        default=1, description="Maximum concurrent early-flush operations"
+        default=1, ge=1, description="Maximum concurrent early-flush operations"
     )
     buffer_overflow_policy: Literal["drop", "block", "raise"] = Field(
         default="drop",
@@ -116,9 +119,11 @@ class AgentConfig(BaseModel):
     enable_metrics: bool = Field(default=True, description="Send performance metrics")
     enable_events: bool = Field(default=True, description="Send security events")
 
-    retry_attempts: int = Field(default=3, description="Number of retry attempts")
-    timeout: int = Field(default=30, description="Request timeout in seconds")
-    backoff_factor: float = Field(default=1.0, description="Backoff factor for retries")
+    retry_attempts: int = Field(default=3, ge=0, description="Number of retry attempts")
+    timeout: int = Field(default=30, gt=0, description="Request timeout in seconds")
+    backoff_factor: float = Field(
+        default=1.0, gt=0, description="Backoff factor for retries"
+    )
 
     sensitive_headers: list[str] = Field(
         default_factory=lambda: [
@@ -167,6 +172,7 @@ class AgentConfig(BaseModel):
     )
     compression_threshold: int = Field(
         default=1024,
+        ge=0,
         description="Minimum body size in bytes before gzip compression applies",
     )
 
@@ -368,7 +374,12 @@ class AgentStatus(BaseModel):
     status: Literal["healthy", "degraded", "failed"]
     uptime: float
     events_sent: int
-    events_failed: int
+    events_failed: int = Field(
+        description=(
+            "Events lost for good (permanently rejected or dropped by the "
+            "transport); an event requeued after a failed send is not counted"
+        )
+    )
     buffer_size: int
     last_flush: datetime | None = None
     errors: list[str] = Field(default_factory=list)

@@ -456,7 +456,8 @@ class TestFlushBoundaryExceptionHandling:
             await host._flush_events()
 
         assert event in list(buffer.event_buffer)
-        assert host.events_failed == 1
+        # a requeued batch is not lost, so it is not counted as failed
+        assert host.events_failed == 0
         assert host._events_failure_streak == 1
         assert host._events_retry_after > 0.0
         assert len(calls) == 1
@@ -491,7 +492,7 @@ class TestFlushBoundaryExceptionHandling:
             await host._flush_metrics()
 
         assert metric in list(buffer.metric_buffer)
-        assert host.metrics_failed == 1
+        assert host.metrics_failed == 0
         assert host._metrics_failure_streak == 1
         assert len(calls) == 1
         assert calls[0][0] == "flush_metrics"

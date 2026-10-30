@@ -190,8 +190,8 @@ async def test_flush_events_413_drop_does_not_requeue_and_confirms_redis(
 
     handler.buffer.confirm_event_redis_keys.assert_awaited_once_with(event_keys)
     handler.buffer.requeue_events_in_memory.assert_not_called()
-    assert handler.events_sent == len(events)
-    assert handler.events_failed == 0
+    assert handler.events_sent == 0
+    assert handler.events_failed == len(events)
     assert handler._events_failure_streak == 0
 
 

@@ -6,7 +6,7 @@ guard-agent logs on the `guard_agent` logger tree (`guard_agent`, `guard_agent.c
 
 Constructing a `GuardAgentHandler` or `SyncGuardAgentHandler` calls `setup_agent_logging(reconfigure=False)`. That call is non-destructive:
 
-* If the `guard_agent` logger already has handlers (host-configured logging), nothing is attached and nothing is changed; records flow to the host handlers via propagation.
+* If the `guard_agent` logger already has handlers (host-configured logging), no console handler is attached and nothing the host set is changed; records flow to the host handlers via propagation. A `log_file` passed to `setup_agent_logging` is still honored: its `FileHandler` is added once next to the host handlers.
 * If it is unconfigured, one `StreamHandler` is attached with the standard guard-core formatter (`[guard_agent.client] 2026-09-01 12:00:00 - WARNING - ...`) and the logger level is set to `INFO` only if it is still `NOTSET`.
 * A console handler is attached only when the root logger has no handlers (yield-to-host contract, same as guard-core); otherwise records propagate to the root.
 
@@ -14,7 +14,7 @@ The setup is idempotent: constructing the handler many times attaches at most on
 
 ## Explicit setup
 
-Hosts that want the agent's own sink call `setup_agent_logging` (exported from `guard_agent`) directly. This reconfigures: it clears agent handlers first, then applies the requested configuration.
+Hosts that want the agent's own sink call `setup_agent_logging` (exported from `guard_agent`) directly. This reconfigures: it removes the handlers the agent attached earlier (never a handler the host attached), then applies the requested configuration.
 
 ```python
 from guard_agent import setup_agent_logging
@@ -22,9 +22,9 @@ from guard_agent import setup_agent_logging
 setup_agent_logging(log_file="guard_agent.log", log_format="json")
 ```
 
-* `log_format="json"` emits one record per line as `{"timestamp", "level", "logger", "message"}`; the default `"text"` emits the prefixed console format.
-* `log_file=...` adds a `FileHandler` alongside the console handler.
-* `reconfigure=False` (the default for explicit calls) applies only when the logger is unconfigured; pass `reconfigure=True` to force the clear-and-apply behavior.
+* `log_format="json"` emits one record per line as `{"timestamp", "level", "logger", "message"}`, plus `"exception"` (the traceback) when the record carries `exc_info` and `"stack"` when it carries `stack_info`; the default `"text"` emits the prefixed console format.
+* `log_file=...` adds a `FileHandler` alongside the console handler, or alongside the host's handlers when the host configured the logger (once per path).
+* `reconfigure=True` (the default for explicit calls) removes the agent's own handlers and applies the request; the handler constructors call it with `reconfigure=False`, which applies only when the logger is unconfigured (a `log_file` is still added once).
 
 ## Notes
 

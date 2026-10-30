@@ -9,6 +9,12 @@ from guard_agent.utils import calculate_backoff_delay, fire_error_hook
 _PARTIAL_FAILURE_MAX_BACKOFF_SECONDS = 300.0
 
 
+def _dropped_for_good(transport: object) -> int:
+    """The transport's lifetime count of items it dropped permanently."""
+    count = getattr(transport, "items_dropped_permanently", 0)
+    return count if isinstance(count, int) else 0
+
+
 class FlushTransport(Protocol):
     async def send_events(self, events: list[SecurityEvent]) -> bool: ...
 
@@ -65,6 +71,7 @@ class FlushMixin:
             return
 
         exc: BaseException | None = None
+        dropped_before = _dropped_for_good(self.transport)
         try:
             success = bool(await self.transport.send_events(events))
         except BaseException as caught:
@@ -73,7 +80,9 @@ class FlushMixin:
 
         if success:
             await self.buffer.confirm_event_redis_keys(event_keys)
-            self.events_sent += len(events)
+            lost = max(0, _dropped_for_good(self.transport) - dropped_before)
+            self.events_sent += len(events) - lost
+            self.events_failed += lost
             self.logger.debug(f"Flushed {len(events)} events")
             if self._events_failure_streak:
                 self.logger.warning(
@@ -85,7 +94,6 @@ class FlushMixin:
             return
 
         await self._requeue_and_confirm_events(events, event_keys)
-        self.events_failed += len(events)
         self._events_failure_streak += 1
         delay = calculate_backoff_delay(
             self._events_failure_streak - 1,
@@ -113,6 +121,7 @@ class FlushMixin:
             return
 
         exc: BaseException | None = None
+        dropped_before = _dropped_for_good(self.transport)
         try:
             success = bool(await self.transport.send_metrics(metrics))
         except BaseException as caught:
@@ -121,7 +130,9 @@ class FlushMixin:
 
         if success:
             await self.buffer.confirm_metric_redis_keys(metric_keys)
-            self.metrics_sent += len(metrics)
+            lost = max(0, _dropped_for_good(self.transport) - dropped_before)
+            self.metrics_sent += len(metrics) - lost
+            self.metrics_failed += lost
             self.logger.debug(f"Flushed {len(metrics)} metrics")
             if self._metrics_failure_streak:
                 self.logger.warning(
@@ -133,7 +144,6 @@ class FlushMixin:
             return
 
         await self._requeue_and_confirm_metrics(metrics, metric_keys)
-        self.metrics_failed += len(metrics)
         self._metrics_failure_streak += 1
         delay = calculate_backoff_delay(
             self._metrics_failure_streak - 1,

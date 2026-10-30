@@ -29,7 +29,7 @@ def _config(retry_attempts: int) -> AgentConfig:
         endpoint="http://localhost:8000",
         project_id="p",
         retry_attempts=retry_attempts,
-        backoff_factor=0.0,
+        backoff_factor=0.001,
     )
 
 

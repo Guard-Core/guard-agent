@@ -107,7 +107,8 @@ class TestPartialFailureBackoff:
 
         handler.buffer.requeue_events_in_memory.assert_called_once()
         handler.buffer.flush_events_with_keys.assert_called_once()
-        assert handler.events_failed == len(events)
+        assert handler.events_failed == 0
+        assert handler._events_failure_streak == 1
 
     @pytest.mark.asyncio
     async def test_backoff_grows_exponentially_and_caps_at_configured_max(

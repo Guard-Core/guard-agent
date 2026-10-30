@@ -39,6 +39,7 @@ class TransportSendMixin(TransportDispatchMixin):
     logger: logging.Logger
     _held_rules: DynamicRules | None
     _held_rules_etag: str | None
+    items_dropped_permanently: int = 0
 
     async def send_events(self, events: list[SecurityEvent]) -> bool:
         """Send security events to the SaaS platform.
@@ -124,6 +125,7 @@ class TransportSendMixin(TransportDispatchMixin):
                 f"payload exceeds size cap even as a single item: {error.detail}"
             )
             self.requests_failed += 1
+            self.items_dropped_permanently += len(items)
             self._fire_error_hook(
                 "transport_send",
                 error,
@@ -143,6 +145,7 @@ class TransportSendMixin(TransportDispatchMixin):
             f"permanently rejected ({error.status_code}): {error.detail}"
         )
         self.requests_failed += 1
+        self.items_dropped_permanently += len(items)
         self._fire_error_hook(
             "transport_send",
             error,

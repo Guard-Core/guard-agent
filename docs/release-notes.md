@@ -21,6 +21,9 @@ Behavior changes since v3.2.4
 - **`stop()` cancels and awaits the in-flight rules request** before it closes the transport, so a shutdown no longer leaves the shared request running against a closed client.
 - **A sync Redis handler method that returns an awaitable is awaited.** A plain function whose result is a coroutine is classified as sync and used to store the un-awaited coroutine; the wrapper now awaits it.
 - **`typing-extensions` needs 4.10.0 or newer** (`TypeIs`), where the dependency had no floor.
+- **The install id never stops the agent from starting, and only an id the agent wrote is trusted.** When the home directory cannot be resolved, created or read, the agent keeps an in-memory install id for the process and logs one WARNING, where construction used to raise. A stored value that is not a lowercase UUID 4 (a multi-line or hand-edited file, which httpx refuses to send as the `X-Agent-Install-Id` header) is replaced with a new id, written back to the file, and logged as one WARNING.
+- **`JsonFormatter` keeps `exc_info` and `stack_info`.** A record logged with `logger.exception(...)` now carries an `exception` key with the traceback, and a record with `stack_info` a `stack` key, as the text format already printed them. Records without either are unchanged.
+- **`setup_agent_logging` leaves handlers it did not attach alone.** `reconfigure=True` used to close and remove every handler on the `guard_agent` logger, including a host's; it now removes only the agent's own. With a host handler present, the agent adds no console handler of its own, and a `log_file` is honored in both modes (a file handler is added once) where `reconfigure=False` used to ignore it.
 
 ### Added
 

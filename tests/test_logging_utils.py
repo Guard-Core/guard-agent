@@ -65,8 +65,6 @@ class RecordingHandler(logging.Handler):
 class TestSetupAgentLogging:
     def test_attaches_console_handler_and_is_idempotent(self) -> None:
         logger = logging.getLogger(GUARD_AGENT_LOGGER_NAME)
-        stale_handler = logging.StreamHandler()
-        logger.addHandler(stale_handler)
 
         result = setup_agent_logging()
 
@@ -75,10 +73,20 @@ class TestSetupAgentLogging:
         assert isinstance(logger.handlers[0], logging.StreamHandler)
         assert not isinstance(logger.handlers[0], logging.FileHandler)
         assert logger.level == logging.INFO
-        assert stale_handler not in logger.handlers
+        attached = logger.handlers[0]
 
         setup_agent_logging()
         assert len(logger.handlers) == 1
+        assert logger.handlers[0] is not attached
+
+    def test_a_handler_the_host_attached_survives_a_reconfigure(self) -> None:
+        logger = logging.getLogger(GUARD_AGENT_LOGGER_NAME)
+        host_handler = logging.StreamHandler()
+        logger.addHandler(host_handler)
+
+        setup_agent_logging()
+
+        assert logger.handlers == [host_handler]
 
     def test_explicit_recall_reapplies_host_intent(self, tmp_path: Any) -> None:
         log_file = tmp_path / "agent.log"

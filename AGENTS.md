@@ -133,6 +133,8 @@ Adapters expose the same knobs as `agent_*` fields on guard-core's `SecurityConf
 
 **413 split-or-drop.** HTTP 413 raises `PayloadTooLargeError`. The caller splits the batch in half and retries each half recursively; a single item that is still over the cap is dropped with a warning.
 
+**Quota refusal.** The SaaS answers a batch of a project over its event quota with HTTP 200, `success: false` and `quota_exceeded: true`. The agent backs off as for any failed flush and drops the batch (counted in `events_failed` / `metrics_failed`, Redis keys deleted) once `retry_attempts + 1` flushes in a row were refused for quota. Events the SaaS answers with `events_dropped_invalid_timestamp` are lost and counted in `events_failed`, not `events_sent`.
+
 **Permanent rejection.** HTTP 400 / 404 / 422 raises `PermanentClientError`; the batch is dropped with a warning, never requeued, so a poison batch cannot loop forever.
 
 **Requeue.** `send_events` / `send_metrics` return `True` when the batch was durably accepted OR intentionally dropped because it is permanently un-sendable (Redis keys are then deleted), and `False` only on transient failure. A `False` return means the caller requeues the items in memory and retains the Redis keys. A `True` return therefore does not by itself mean the events reached the dashboard; permanent drops are also `True`.

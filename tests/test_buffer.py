@@ -111,6 +111,7 @@ class _FlushHost(FlushMixin):
         self.logger = logging.getLogger(__name__)
         self.buffer = buffer
         self.transport = transport
+        self._quota_refusal_streaks = {"events": 0, "metrics": 0}
         self.events_sent = 0
         self.metrics_sent = 0
         self.events_failed = 0

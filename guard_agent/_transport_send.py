@@ -40,6 +40,7 @@ class TransportSendMixin(TransportDispatchMixin):
     _held_rules: DynamicRules | None
     _held_rules_etag: str | None
     items_dropped_permanently: int = 0
+    batches_refused_for_quota: int = 0
 
     async def send_events(self, events: list[SecurityEvent]) -> bool:
         """Send security events to the SaaS platform.
@@ -226,6 +227,8 @@ class TransportSendMixin(TransportDispatchMixin):
         self, result: dict[str, JsonValue] | bool, data_type: str
     ) -> bool | None:
         """Return True (accepted), False (partial failure), or None (retry)."""
+        if isinstance(result, dict):
+            self._account_server_verdict(result)
         if isinstance(result, dict) and (
             result.get("success") is False or result.get("errors")
         ):
@@ -241,6 +244,24 @@ class TransportSendMixin(TransportDispatchMixin):
             return True
         self.requests_failed += 1
         return None
+
+    def _account_server_verdict(self, result: Mapping[str, JsonValue]) -> None:
+        """Count what the server answered besides accepted or failed.
+
+        Events it dropped for a timestamp outside its window come back inside a
+        success answer: they are lost, so they count like any other drop.
+        A batch it refused because the project is over its quota is counted so
+        the flush can stop re-sending it.
+        """
+        dropped = result.get("events_dropped_invalid_timestamp")
+        if isinstance(dropped, int) and not isinstance(dropped, bool) and dropped > 0:
+            self.logger.warning(
+                f"Server dropped {dropped} event(s) with a timestamp outside its "
+                f"accepted window; they are lost"
+            )
+            self.items_dropped_permanently += dropped
+        if result.get("quota_exceeded") is True:
+            self.batches_refused_for_quota += 1
 
     async def _sleep_or_record_giveup(self, attempt: int, delay: float) -> bool:
         """Sleep to retry (return True) or record a final failure (return False)."""

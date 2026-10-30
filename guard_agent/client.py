@@ -110,6 +110,7 @@ class GuardAgentHandler(IngestMixin, LoopsMixin, AgentHandlerProtocol):
         self._metrics_failure_streak = 0
         self._events_retry_after = 0.0
         self._metrics_retry_after = 0.0
+        self._quota_refusal_streaks = {"events": 0, "metrics": 0}
 
         self._cached_rules: DynamicRules | None = None
         self._rules_last_update: float = 0

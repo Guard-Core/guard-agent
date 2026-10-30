@@ -15,6 +15,12 @@ def _dropped_for_good(transport: object) -> int:
     return count if isinstance(count, int) else 0
 
 
+def _refused_for_quota(transport: object) -> int:
+    """The transport's lifetime count of batches the server refused for quota."""
+    count = getattr(transport, "batches_refused_for_quota", 0)
+    return count if isinstance(count, int) else 0
+
+
 class FlushTransport(Protocol):
     async def send_events(self, events: list[SecurityEvent]) -> bool: ...
 
@@ -34,6 +40,7 @@ class FlushMixin:
     _metrics_failure_streak: int
     _events_retry_after: float
     _metrics_retry_after: float
+    _quota_refusal_streaks: dict[str, int]
 
     def _fire_error_hook(
         self, stage: str, exc: BaseException, context: dict[str, object]
@@ -72,6 +79,7 @@ class FlushMixin:
 
         exc: BaseException | None = None
         dropped_before = _dropped_for_good(self.transport)
+        refused_before = _refused_for_quota(self.transport)
         try:
             success = bool(await self.transport.send_events(events))
         except BaseException as caught:
@@ -90,10 +98,15 @@ class FlushMixin:
                     f"{self._events_failure_streak} consecutive partial failure(s)"
                 )
             self._events_failure_streak = 0
+            self._quota_refusal_streaks["events"] = 0
             self._events_retry_after = 0.0
             return
 
-        await self._requeue_and_confirm_events(events, event_keys)
+        refused = _refused_for_quota(self.transport) > refused_before
+        if self._quota_refusal_limit_reached("events", refused):
+            await self._drop_events_refused_for_quota(events, event_keys)
+        else:
+            await self._requeue_and_confirm_events(events, event_keys)
         self._events_failure_streak += 1
         delay = calculate_backoff_delay(
             self._events_failure_streak - 1,
@@ -122,6 +135,7 @@ class FlushMixin:
 
         exc: BaseException | None = None
         dropped_before = _dropped_for_good(self.transport)
+        refused_before = _refused_for_quota(self.transport)
         try:
             success = bool(await self.transport.send_metrics(metrics))
         except BaseException as caught:
@@ -140,10 +154,15 @@ class FlushMixin:
                     f"{self._metrics_failure_streak} consecutive partial failure(s)"
                 )
             self._metrics_failure_streak = 0
+            self._quota_refusal_streaks["metrics"] = 0
             self._metrics_retry_after = 0.0
             return
 
-        await self._requeue_and_confirm_metrics(metrics, metric_keys)
+        refused = _refused_for_quota(self.transport) > refused_before
+        if self._quota_refusal_limit_reached("metrics", refused):
+            await self._drop_metrics_refused_for_quota(metrics, metric_keys)
+        else:
+            await self._requeue_and_confirm_metrics(metrics, metric_keys)
         self._metrics_failure_streak += 1
         delay = calculate_backoff_delay(
             self._metrics_failure_streak - 1,
@@ -161,6 +180,43 @@ class FlushMixin:
             self.logger.error(f"Transport raised sending metrics: {str(exc)}")
             self._fire_error_hook("flush_metrics", exc, {"batch_size": len(metrics)})
             raise exc
+
+    def _quota_refusal_limit_reached(self, kind: str, refused: bool) -> bool:
+        """Count consecutive flushes the server refused for quota.
+
+        Past the agent's retry limit the batch is dropped instead of requeued:
+        a project over its quota stays over it until the plan changes, so a
+        requeue would re-send the same items on every flush and, once the
+        buffer is full, evict newer ones to keep them.
+        """
+        if not refused:
+            self._quota_refusal_streaks[kind] = 0
+            return False
+        self._quota_refusal_streaks[kind] += 1
+        if self._quota_refusal_streaks[kind] <= self.config.retry_attempts:
+            return False
+        self._quota_refusal_streaks[kind] = 0
+        return True
+
+    async def _drop_events_refused_for_quota(
+        self, events: list[SecurityEvent], event_keys: list[str]
+    ) -> None:
+        self.logger.warning(
+            f"Dropping {len(events)} events: the server refused them for quota "
+            f"{self.config.retry_attempts + 1} flushes in a row"
+        )
+        await self.buffer.confirm_event_redis_keys(event_keys)
+        self.events_failed += len(events)
+
+    async def _drop_metrics_refused_for_quota(
+        self, metrics: list[SecurityMetric], metric_keys: list[str]
+    ) -> None:
+        self.logger.warning(
+            f"Dropping {len(metrics)} metrics: the server refused them for quota "
+            f"{self.config.retry_attempts + 1} flushes in a row"
+        )
+        await self.buffer.confirm_metric_redis_keys(metric_keys)
+        self.metrics_failed += len(metrics)
 
     async def _requeue_and_confirm_events(
         self, events: list[SecurityEvent], event_keys: list[str]

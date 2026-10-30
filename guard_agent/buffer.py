@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import uuid
 from collections import deque
 from collections.abc import Awaitable, Callable
 
@@ -25,6 +26,7 @@ class EventBuffer(BufferQueueMixin, BufferProtocol):
         self.metric_buffer: deque[SecurityMetric] = deque(maxlen=config.buffer_size)
 
         self.redis_handler: RedisHandlerProtocol | None = None
+        self.instance_id = uuid.uuid4().hex[:16]
 
         self._flush_task: asyncio.Task[None] | None = None
         self._flush_semaphore: asyncio.Semaphore | None = None
@@ -52,7 +54,11 @@ class EventBuffer(BufferQueueMixin, BufferProtocol):
 
     async def initialize_redis(self, redis_handler: RedisHandlerProtocol) -> None:
         self.redis_handler = redis_handler
-        await self._load_from_redis()
+        self.logger.info(
+            f"Buffering to Redis as instance {self.instance_id}; the items "
+            f"another instance persisted are never loaded unless "
+            f"recover_orphaned_instance() is called for it"
+        )
 
     def get_stats(self) -> dict[str, JsonValue]:
         """Get buffer statistics."""

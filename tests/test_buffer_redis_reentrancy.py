@@ -11,7 +11,7 @@ from guard_agent.models import AgentConfig, SecurityEvent, SecurityMetric
 from guard_agent.transport import HTTPTransport
 
 FAKE_TIMEOUT = 3.0
-AGENT_NAMESPACES = ("agent_events", "agent_metrics")
+AGENT_NAMESPACE_PREFIXES = ("agent_events:", "agent_metrics:")
 
 
 def _event(reason: str = "r") -> SecurityEvent:
@@ -87,14 +87,14 @@ class GatedRedis:
         self.store: dict[str, str] = {}
 
     async def set_key(self, ns: str, key: str, value: str, ttl: Any = None) -> bool:
-        assert ns in AGENT_NAMESPACES
+        assert ns.startswith(AGENT_NAMESPACE_PREFIXES)
         self.entered.set()
         await self.release.wait()
         self.store[key] = value
         return True
 
     async def delete(self, ns: str, key: str) -> int:
-        assert ns in AGENT_NAMESPACES
+        assert ns.startswith(AGENT_NAMESPACE_PREFIXES)
         return int(self.store.pop(key, None) is not None)
 
     async def get_key(self, *args: Any, **kwargs: Any) -> None:

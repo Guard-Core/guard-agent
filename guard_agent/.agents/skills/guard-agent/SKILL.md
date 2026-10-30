@@ -72,7 +72,7 @@ Keep `buffer_size` small. The SaaS ingestion endpoint caps request bodies at 256
 
 ## Redis Persistence
 
-When `initialize_redis(redis_handler)` is called, every buffered item is also written to Redis under a globally-unique key with `ttl=3600` seconds. On a successful flush, the corresponding Redis keys are deleted. On a transient failure the items are requeued in memory and the Redis keys are retained, so a process restart can re-load them. See [the Redis reference](references/redis.md).
+When `initialize_redis(redis_handler)` is called, every buffered item is also written to Redis under this buffer instance's own namespace (`agent_events:<instance_id>`) with `ttl=3600` seconds. On a successful flush, the corresponding Redis keys are deleted. On a transient failure the items are requeued in memory and the Redis keys are retained, and `recover_orphaned_instance(instance_id)` adopts the items of a dead instance on request (a worker never loads another instance's items on its own). See [the Redis reference](references/redis.md).
 
 ## Transport: 413 and Permanent Rejections
 

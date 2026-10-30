@@ -146,9 +146,9 @@ class TestBufferOverflowConcurrency:
 
         tracked_keys = set(buffer._event_redis_keys.values())
         stored_keys = {
-            k.split(":", 1)[1]
+            k.split(":")[-1]
             for k in fake_redis.store
-            if k.startswith("agent_events:")
+            if k.startswith(f"{buffer._event_namespace}:")
         }
         assert stored_keys == tracked_keys
         _assert_key_map_matches_buffer(buffer)
@@ -173,9 +173,9 @@ class TestBufferOverflowConcurrency:
 
         tracked_keys = set(buffer._metric_redis_keys.values())
         stored_keys = {
-            k.split(":", 1)[1]
+            k.split(":")[-1]
             for k in fake_redis.store
-            if k.startswith("agent_metrics:")
+            if k.startswith(f"{buffer._metric_namespace}:")
         }
         assert stored_keys == tracked_keys
         _assert_key_map_matches_buffer(buffer)
@@ -234,9 +234,9 @@ class TestBufferOverflowConcurrency:
 
         tracked_keys = set(buffer._event_redis_keys.values())
         stored_keys = {
-            k.split(":", 1)[1]
+            k.split(":")[-1]
             for k in fake_redis.store
-            if k.startswith("agent_events:")
+            if k.startswith(f"{buffer._event_namespace}:")
         }
         assert stored_keys == tracked_keys
         _assert_key_map_matches_buffer(buffer)
@@ -597,12 +597,10 @@ class TestBufferRedisIntegration:
     async def test_initialize_redis(
         self, buffer: EventBuffer, mock_redis_handler: AsyncMock
     ) -> None:
-        with patch.object(
-            buffer, "_load_from_redis", new_callable=AsyncMock
-        ) as mock_load:
-            await buffer.initialize_redis(mock_redis_handler)
-            assert buffer.redis_handler is mock_redis_handler
-            mock_load.assert_awaited_once()
+        await buffer.initialize_redis(mock_redis_handler)
+        assert buffer.redis_handler is mock_redis_handler
+        mock_redis_handler.keys.assert_not_awaited()
+        mock_redis_handler.get_key.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_add_event_with_redis(
@@ -646,7 +644,7 @@ class TestBufferRedisIntegration:
 
         assert mock_redis_handler.delete.call_count == 1
         args = mock_redis_handler.delete.call_args.args
-        assert args[0] == "agent_events"
+        assert args[0] == buffer._event_namespace
         assert args[1].startswith("event_")
 
     @pytest.mark.asyncio
@@ -663,7 +661,7 @@ class TestBufferRedisIntegration:
 
         assert mock_redis_handler.delete.call_count == 1
         args = mock_redis_handler.delete.call_args.args
-        assert args[0] == "agent_metrics"
+        assert args[0] == buffer._metric_namespace
         assert args[1].startswith("metric_")
 
     @pytest.mark.asyncio
@@ -816,7 +814,7 @@ class TestBufferRedisPersistence:
         await buffer._persist_event_to_redis(security_event)
         mock_redis_handler.set_key.assert_awaited_once()
         args, kwargs = mock_redis_handler.set_key.call_args
-        assert args[0] == "agent_events"
+        assert args[0] == buffer._event_namespace
         assert args[1].startswith("event_")
         assert "ip_banned" in args[2]
 
@@ -831,7 +829,7 @@ class TestBufferRedisPersistence:
         await buffer._persist_metric_to_redis(security_metric)
         mock_redis_handler.set_key.assert_awaited_once()
         args, kwargs = mock_redis_handler.set_key.call_args
-        assert args[0] == "agent_metrics"
+        assert args[0] == buffer._metric_namespace
         assert args[1].startswith("metric_")
         assert "request_count" in args[2]
 
@@ -949,15 +947,16 @@ class TestBufferLoadFromRedis:
         metric_data = await safe_json_serialize(security_metric.model_dump())
 
         async def get_key_side_effect(namespace: str, key: str) -> str | None:
-            if namespace == "agent_events" and key == event_key:
+            if namespace == "agent_events:dead" and key == event_key:
                 return event_data
-            if namespace == "agent_metrics" and key == metric_key:
+            if namespace == "agent_metrics:dead" and key == metric_key:
                 return metric_data
             return None
 
         mock_redis_handler.get_key.side_effect = get_key_side_effect
 
-        await buffer.initialize_redis(mock_redis_handler)  # this calls _load_from_redis
+        await buffer.initialize_redis(mock_redis_handler)
+        assert await buffer.recover_orphaned_instance("dead") == (1, 1)
 
         assert len(buffer.event_buffer) == 1
         assert len(buffer.metric_buffer) == 1
@@ -972,7 +971,7 @@ class TestBufferLoadFromRedis:
 
     @pytest.mark.asyncio
     async def test_load_from_redis_no_handler(self, buffer: EventBuffer) -> None:
-        await buffer._load_from_redis()  # should do nothing and not fail
+        assert await buffer.recover_orphaned_instance("dead") == (0, 0)
 
     @pytest.mark.asyncio
     async def test_load_from_redis_exception(
@@ -983,6 +982,7 @@ class TestBufferLoadFromRedis:
     ) -> None:
         mock_redis_handler.keys.side_effect = Exception("Redis Error")
         await buffer.initialize_redis(mock_redis_handler)
+        await buffer.recover_orphaned_instance("dead")
         assert "Failed to load from Redis: Redis Error" in caplog.text
 
     @pytest.mark.asyncio
@@ -995,6 +995,7 @@ class TestBufferLoadFromRedis:
         mock_redis_handler.keys.return_value = ["agent_events:event_123"]
         mock_redis_handler.get_key.side_effect = Exception("Get Key Error")
         await buffer.initialize_redis(mock_redis_handler)
+        await buffer.recover_orphaned_instance("dead")
         assert (
             "Failed to load event from Redis key agent_events:event_123: Get Key Error"
             in caplog.text
@@ -1010,6 +1011,7 @@ class TestBufferLoadFromRedis:
         mock_redis_handler.keys.return_value = ["agent_events:event_123"]
         mock_redis_handler.get_key.return_value = "invalid json"
         await buffer.initialize_redis(mock_redis_handler)
+        await buffer.recover_orphaned_instance("dead")
         assert len(buffer.event_buffer) == 0
         assert "Failed to deserialize JSON" in caplog.text
 
@@ -1023,6 +1025,7 @@ class TestBufferLoadFromRedis:
         mock_redis_handler.keys.return_value = ["agent_events:event_123"]
         mock_redis_handler.get_key.return_value = """{"invalid": "data"}"""
         await buffer.initialize_redis(mock_redis_handler)
+        await buffer.recover_orphaned_instance("dead")
         assert len(buffer.event_buffer) == 0
         assert "Failed to load event from Redis key" in caplog.text
 
@@ -1039,6 +1042,7 @@ class TestBufferLoadFromRedis:
         )
 
         await buffer.initialize_redis(mock_redis_handler)
+        await buffer.recover_orphaned_instance("dead")
 
         assert len(buffer.event_buffer) == 0
         assert len(buffer.metric_buffer) == 0
@@ -1049,7 +1053,7 @@ class TestBufferLoadFromRedis:
 
     @pytest.mark.asyncio
     async def test_initialize_redis_load_does_not_race_add_event(self) -> None:
-        """C31: loading persisted events at startup must not race live
+        """C31: recovering a dead instance's events must not race live
         add_event traffic touching the same deque and Redis-key map."""
         from guard_agent.utils import safe_json_serialize
 
@@ -1060,12 +1064,13 @@ class TestBufferLoadFromRedis:
         preexisting = [_make_named_event(f"preload-{i}") for i in range(5)]
         for i, event in enumerate(preexisting):
             data = await safe_json_serialize(event.model_dump())
-            await fake_redis.set_key("agent_events", f"preload_{i}", data)
+            await fake_redis.set_key("agent_events:dead", f"preload_{i}", data)
 
         live_event = _make_named_event("live")
 
+        buffer.redis_handler = fake_redis
         await asyncio.gather(
-            buffer.initialize_redis(fake_redis),
+            buffer.recover_orphaned_instance("dead"),
             buffer.add_event(live_event),
         )
 
@@ -1088,12 +1093,13 @@ class TestBufferLoadFromRedis:
         preexisting = [_make_named_metric(float(i)) for i in range(5)]
         for i, metric in enumerate(preexisting):
             data = await safe_json_serialize(metric.model_dump())
-            await fake_redis.set_key("agent_metrics", f"preload_{i}", data)
+            await fake_redis.set_key("agent_metrics:dead", f"preload_{i}", data)
 
         live_metric = _make_named_metric(99.0)
 
+        buffer.redis_handler = fake_redis
         await asyncio.gather(
-            buffer.initialize_redis(fake_redis),
+            buffer.recover_orphaned_instance("dead"),
             buffer.add_metric(live_metric),
         )
 
@@ -1105,7 +1111,7 @@ class TestBufferLoadFromRedis:
     async def test_load_does_not_orphan_key_racing_add_event_at_capacity(
         self,
     ) -> None:
-        """C31, decisive: at capacity, a startup load's raw append can
+        """C31, decisive: at capacity, a recovery's raw append can
         evict the item add_event just placed. The lock must serialize
         the two so add_event's own key bookkeeping finishes first, and
         the load must forget that key before its own append evicts it."""
@@ -1125,7 +1131,7 @@ class TestBufferLoadFromRedis:
 
         fake_redis = GatedRedisHandler()
         preload_event = _make_named_event("preload")
-        fake_redis.store["agent_events:preload"] = await safe_json_serialize(
+        fake_redis.store["agent_events:dead:preload"] = await safe_json_serialize(
             preload_event.model_dump()
         )
         buffer.redis_handler = fake_redis
@@ -1136,7 +1142,7 @@ class TestBufferLoadFromRedis:
         await asyncio.sleep(0)
         assert live_event in list(buffer.event_buffer)
 
-        load_task = asyncio.create_task(buffer._load_from_redis())
+        load_task = asyncio.create_task(buffer.recover_orphaned_instance("dead"))
         await asyncio.sleep(0)
 
         persist_gate.set()
@@ -1166,7 +1172,7 @@ class TestBufferLoadFromRedis:
 
         fake_redis = GatedRedisHandler()
         preload_metric = _make_named_metric(0.0)
-        fake_redis.store["agent_metrics:preload"] = await safe_json_serialize(
+        fake_redis.store["agent_metrics:dead:preload"] = await safe_json_serialize(
             preload_metric.model_dump()
         )
         buffer.redis_handler = fake_redis
@@ -1177,7 +1183,7 @@ class TestBufferLoadFromRedis:
         await asyncio.sleep(0)
         assert live_metric in list(buffer.metric_buffer)
 
-        load_task = asyncio.create_task(buffer._load_from_redis())
+        load_task = asyncio.create_task(buffer.recover_orphaned_instance("dead"))
         await asyncio.sleep(0)
 
         persist_gate.set()
@@ -1224,7 +1230,9 @@ class TestBufferClearFromRedis:
         await buffer._clear_events_from_redis(clear_count)
         assert mock_redis_handler.delete.call_count == len(expected_deletes)
         for event_id in expected_deletes:
-            mock_redis_handler.delete.assert_any_await("agent_events", event_id)
+            mock_redis_handler.delete.assert_any_await(
+                buffer._event_namespace, event_id
+            )
 
     @pytest.mark.asyncio
     async def test_clear_metrics_from_redis(
@@ -1237,7 +1245,9 @@ class TestBufferClearFromRedis:
         await buffer.initialize_redis(mock_redis_handler)
         await buffer._clear_metrics_from_redis(1)
         assert mock_redis_handler.delete.call_count == 1
-        mock_redis_handler.delete.assert_awaited_once_with("agent_metrics", "metric_1")
+        mock_redis_handler.delete.assert_awaited_once_with(
+            buffer._metric_namespace, "metric_1"
+        )
 
     @pytest.mark.asyncio
     async def test_clear_from_redis_no_handler(self, buffer: EventBuffer) -> None:
@@ -1274,16 +1284,14 @@ class TestBufferClearFromRedis:
         self, buffer: EventBuffer, mock_redis_handler: AsyncMock
     ) -> None:
         mock_redis_handler.keys.side_effect = [
-            [],  # For _load_from_redis events
-            [],  # For _load_from_redis metrics
             ["agent_events:event_1"],  # For _clear_redis_buffers events
             ["agent_metrics:metric_1"],  # For _clear_redis_buffers metrics
         ]
         mock_redis_handler.delete.return_value = None
         await buffer.initialize_redis(mock_redis_handler)
         await buffer._clear_redis_buffers()
-        mock_redis_handler.delete.assert_any_await("agent_events", "event_1")
-        mock_redis_handler.delete.assert_any_await("agent_metrics", "metric_1")
+        mock_redis_handler.delete.assert_any_await(buffer._event_namespace, "event_1")
+        mock_redis_handler.delete.assert_any_await(buffer._metric_namespace, "metric_1")
 
     @pytest.mark.asyncio
     async def test_clear_redis_buffers_exception(
@@ -1436,7 +1444,7 @@ class TestBufferOverflowDropTracking:
         await buffer.add_metric(second)
 
         mock_redis_handler.delete.assert_awaited_once()
-        assert mock_redis_handler.delete.call_args.args[0] == "agent_metrics"
+        assert mock_redis_handler.delete.call_args.args[0] == buffer._metric_namespace
 
     @pytest.mark.asyncio
     async def test_no_drops_when_buffer_has_capacity(
@@ -1547,7 +1555,10 @@ class TestBufferConfirmAndRequeue:
 
         await buffer.confirm_event_redis_keys(keys)
         assert mock_redis_handler.delete.call_count == 1
-        assert mock_redis_handler.delete.call_args.args == ("agent_events", keys[0])
+        assert mock_redis_handler.delete.call_args.args == (
+            buffer._event_namespace,
+            keys[0],
+        )
 
     @pytest.mark.asyncio
     async def test_requeue_restores_events_for_retry(
@@ -1669,7 +1680,9 @@ class TestBufferConfirmAndRequeue:
 
         await buffer.confirm_event_redis_keys(["", "evt_real", ""])
 
-        mock_redis_handler.delete.assert_awaited_once_with("agent_events", "evt_real")
+        mock_redis_handler.delete.assert_awaited_once_with(
+            buffer._event_namespace, "evt_real"
+        )
 
     @pytest.mark.asyncio
     async def test_confirm_metric_redis_keys_skips_empty_keys(
@@ -1679,7 +1692,9 @@ class TestBufferConfirmAndRequeue:
 
         await buffer.confirm_metric_redis_keys(["", "m_real", ""])
 
-        mock_redis_handler.delete.assert_awaited_once_with("agent_metrics", "m_real")
+        mock_redis_handler.delete.assert_awaited_once_with(
+            buffer._metric_namespace, "m_real"
+        )
 
     @pytest.mark.asyncio
     async def test_confirm_metric_redis_keys_no_op_when_redis_missing(
@@ -1963,8 +1978,6 @@ class TestBufferMissingBranches:
         self, buffer: EventBuffer, mock_redis_handler: AsyncMock
     ) -> None:
         mock_redis_handler.keys.side_effect = [
-            [],
-            [],
             ["agent_metrics:metric_1", "agent_metrics:metric_2"],
         ]
         await buffer.initialize_redis(mock_redis_handler)

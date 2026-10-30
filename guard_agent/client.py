@@ -128,6 +128,14 @@ class GuardAgentHandler(IngestMixin, LoopsMixin, AgentHandlerProtocol):
         await self.buffer.initialize_redis(redis_handler)
         self.logger.info("Redis integration initialized")
 
+    async def list_persisted_instances(self) -> dict[str, dict[str, int]]:
+        """Persisted items of every other buffer instance on this Redis, per id."""
+        return await self.buffer.list_persisted_instances()
+
+    async def recover_orphaned_instance(self, instance_id: str) -> tuple[int, int]:
+        """Adopt the persisted events and metrics of a dead buffer instance."""
+        return await self.buffer.recover_orphaned_instance(instance_id)
+
     async def start(self) -> None:
         if self._running:
             self.logger.warning("Agent is already running")
@@ -222,6 +230,12 @@ class SyncGuardAgentHandler:
         self, redis_handler: SyncRedisHandlerProtocol | RedisHandlerProtocol
     ) -> None:
         self._run(self._inner.initialize_redis(as_async_redis_handler(redis_handler)))
+
+    def list_persisted_instances(self) -> dict[str, dict[str, int]]:
+        return self._run(self._inner.list_persisted_instances())
+
+    def recover_orphaned_instance(self, instance_id: str) -> tuple[int, int]:
+        return self._run(self._inner.recover_orphaned_instance(instance_id))
 
     def start(self) -> None:
         self._run(self._inner.start())

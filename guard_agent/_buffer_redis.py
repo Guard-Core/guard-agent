@@ -27,6 +27,16 @@ class BufferRedisMixin:
     _metric_redis_keys: dict[int, str]
     _pending_event_persists: dict[int, bool]
     _pending_metric_persists: dict[int, bool]
+    instance_id: str
+
+    @property
+    def _event_namespace(self) -> str:
+        """Where this instance persists its events: no other instance shares it."""
+        return f"agent_events:{self.instance_id}"
+
+    @property
+    def _metric_namespace(self) -> str:
+        return f"agent_metrics:{self.instance_id}"
 
     def _require_redis_handler(self) -> RedisHandlerProtocol:
         if self.redis_handler is None:
@@ -61,7 +71,7 @@ class BufferRedisMixin:
             data = event.model_dump() if hasattr(event, "model_dump") else vars(event)
             serialized = await safe_json_serialize(data)
             await self.redis_handler.set_key(
-                "agent_events",
+                self._event_namespace,
                 key,
                 serialized,
                 ttl=3600,
@@ -85,7 +95,7 @@ class BufferRedisMixin:
                 data = vars(metric)
             serialized = await safe_json_serialize(data)
             await self.redis_handler.set_key(
-                "agent_metrics",
+                self._metric_namespace,
                 key,
                 serialized,
                 ttl=3600,
@@ -145,39 +155,68 @@ class BufferRedisMixin:
         else:
             await self.confirm_metric_redis_keys([key])
 
-    async def _load_from_redis(self) -> None:
-        """Load persisted events/metrics from Redis on startup; track keys.
+    async def list_persisted_instances(self) -> dict[str, dict[str, int]]:
+        """Count the persisted items of every OTHER buffer instance on this Redis.
 
-        Each batch loads under its buffer's condition lock, so a startup
-        load cannot race live add_event/add_metric traffic touching the
-        same deque and Redis-key map.
+        Returns ``{instance_id: {"events": n, "metrics": m}}``. Nothing is loaded
+        or changed. A live worker is listed too: only the operator knows which
+        instance is dead, so the choice to recover one stays explicit.
         """
-        if not self.redis_handler:
-            return
+        redis_handler = self._require_redis_handler()
+        found: dict[str, dict[str, int]] = {}
+        for kind, namespace in (
+            ("events", "agent_events"),
+            ("metrics", "agent_metrics"),
+        ):
+            for key in await redis_handler.keys(f"{namespace}:*") or []:
+                instance_id = key.split(":")[-2]
+                if instance_id == self.instance_id or instance_id == namespace:
+                    continue
+                counts = found.setdefault(instance_id, {"events": 0, "metrics": 0})
+                counts[kind] += 1
+        return found
 
+    async def recover_orphaned_instance(self, instance_id: str) -> tuple[int, int]:
+        """Adopt the persisted events and metrics of a dead buffer instance.
+
+        This is the only path that loads items another instance persisted: the
+        buffer never does it on its own, so a worker never re-sends what a live
+        worker still holds. Each item is moved (written under this instance,
+        then deleted from the dead one's namespace). Returns the adopted
+        ``(events, metrics)`` counts; this instance's own id adopts nothing.
+        """
+        if not self.redis_handler or instance_id == self.instance_id:
+            return 0, 0
+
+        events_before, metrics_before = self.events_buffered, self.metrics_buffered
         try:
             async with self._get_event_condition():
-                await self._load_events_from_redis()
+                await self._adopt_events_from_instance(instance_id)
             async with self._get_metric_condition():
-                await self._load_metrics_from_redis()
-
-            if self.event_buffer or self.metric_buffer:
-                loaded_events = f"Loaded {len(self.event_buffer)} events"
-                loaded_metrics = f"Loaded {len(self.metric_buffer)} metrics"
-                self.logger.info(f"{loaded_events} and {loaded_metrics} from Redis")
-
+                await self._adopt_metrics_from_instance(instance_id)
         except Exception as e:
             self.logger.warning(f"Failed to load from Redis: {str(e)}")
+        adopted = (
+            self.events_buffered - events_before,
+            self.metrics_buffered - metrics_before,
+        )
+        if any(adopted):
+            loaded_events = f"Loaded {adopted[0]} events"
+            loaded_metrics = f"Loaded {adopted[1]} metrics"
+            self.logger.info(
+                f"{loaded_events} and {loaded_metrics} from Redis "
+                f"(instance {instance_id})"
+            )
+        return adopted
 
-    async def _load_events_from_redis(self) -> None:
-        """Load persisted events from Redis."""
+    async def _adopt_events_from_instance(self, instance_id: str) -> None:
         redis_handler = self._require_redis_handler()
-        event_keys = await redis_handler.keys("agent_events:*") or []
-        for key in event_keys:
-            await self._load_one_event_from_redis(key)
+        source = f"agent_events:{instance_id}"
+        for key in await redis_handler.keys(f"{source}:*") or []:
+            await self._load_one_event_from_redis(key, source)
 
-    async def _load_one_event_from_redis(self, key: str) -> None:
-        """Load a single event from Redis, recording the key on success.
+    async def _load_one_event_from_redis(self, key: str, source_namespace: str) -> None:
+        """Move a single event of ``source_namespace`` into this instance.
 
         If the buffer is already at capacity, the oldest item's key is
         forgotten first so the deque's own maxlen eviction never orphans
@@ -186,7 +225,7 @@ class BufferRedisMixin:
         redis_handler = self._require_redis_handler()
         try:
             short_key = key.split(":")[-1]
-            event_data = await redis_handler.get_key("agent_events", short_key)
+            event_data = await redis_handler.get_key(source_namespace, short_key)
             if not event_data:
                 self.logger.warning(
                     f"Failed to load event from Redis key {key}: No data found for key"
@@ -196,6 +235,10 @@ class BufferRedisMixin:
             if not event_dict:
                 return
             event = SecurityEvent.model_validate(event_dict)
+            await redis_handler.set_key(
+                self._event_namespace, short_key, event_data, ttl=3600
+            )
+            await redis_handler.delete(source_namespace, short_key)
             if self._is_event_buffer_full():
                 self._forget_oldest_event_key()
             self.event_buffer.append(event)
@@ -204,24 +247,20 @@ class BufferRedisMixin:
         except Exception as e:
             self.logger.warning(f"Failed to load event from Redis key {key}: {e}")
 
-    async def _load_metrics_from_redis(self) -> None:
-        """Load persisted metrics from Redis."""
+    async def _adopt_metrics_from_instance(self, instance_id: str) -> None:
         redis_handler = self._require_redis_handler()
-        metric_keys = await redis_handler.keys("agent_metrics:*") or []
-        for key in metric_keys:
-            await self._load_one_metric_from_redis(key)
+        source = f"agent_metrics:{instance_id}"
+        for key in await redis_handler.keys(f"{source}:*") or []:
+            await self._load_one_metric_from_redis(key, source)
 
-    async def _load_one_metric_from_redis(self, key: str) -> None:
-        """Load a single metric from Redis, recording the key on success.
-
-        If the buffer is already at capacity, the oldest item's key is
-        forgotten first so the deque's own maxlen eviction never orphans
-        a still-tracked Redis record.
-        """
+    async def _load_one_metric_from_redis(
+        self, key: str, source_namespace: str
+    ) -> None:
+        """Metric twin of _load_one_event_from_redis."""
         redis_handler = self._require_redis_handler()
         try:
             short_key = key.split(":")[-1]
-            metric_data = await redis_handler.get_key("agent_metrics", short_key)
+            metric_data = await redis_handler.get_key(source_namespace, short_key)
             if not metric_data:
                 self.logger.warning(
                     f"Failed to load metric from Redis key {key}: No data found for key"
@@ -231,6 +270,10 @@ class BufferRedisMixin:
             if not metric_dict:
                 return
             metric = SecurityMetric.model_validate(metric_dict)
+            await redis_handler.set_key(
+                self._metric_namespace, short_key, metric_data, ttl=3600
+            )
+            await redis_handler.delete(source_namespace, short_key)
             if self._is_metric_buffer_full():
                 self._forget_oldest_metric_key()
             self.metric_buffer.append(metric)
@@ -257,7 +300,7 @@ class BufferRedisMixin:
 
         try:
             await self._delete_matching_redis_keys(
-                "agent_events", "agent_events:*", count
+                self._event_namespace, f"{self._event_namespace}:*", count
             )
         except Exception as e:
             self.logger.warning(f"Failed to clear events from Redis: {str(e)}")
@@ -269,7 +312,7 @@ class BufferRedisMixin:
 
         try:
             await self._delete_matching_redis_keys(
-                "agent_metrics", "agent_metrics:*", count
+                self._metric_namespace, f"{self._metric_namespace}:*", count
             )
         except Exception as e:
             self.logger.warning(f"Failed to clear metrics from Redis: {str(e)}")
@@ -280,8 +323,12 @@ class BufferRedisMixin:
             return
 
         try:
-            await self._delete_matching_redis_keys("agent_events", "agent_events:*")
-            await self._delete_matching_redis_keys("agent_metrics", "agent_metrics:*")
+            await self._delete_matching_redis_keys(
+                self._event_namespace, f"{self._event_namespace}:*"
+            )
+            await self._delete_matching_redis_keys(
+                self._metric_namespace, f"{self._metric_namespace}:*"
+            )
             self.logger.info("Cleared all Redis buffers")
         except Exception as e:
             self.logger.warning(f"Failed to clear Redis buffers: {str(e)}")
@@ -294,7 +341,7 @@ class BufferRedisMixin:
             if not key:
                 continue
             try:
-                await self.redis_handler.delete("agent_events", key)
+                await self.redis_handler.delete(self._event_namespace, key)
             except Exception as e:
                 self.logger.warning(f"Failed to delete confirmed event key {key}: {e}")
 
@@ -306,6 +353,6 @@ class BufferRedisMixin:
             if not key:
                 continue
             try:
-                await self.redis_handler.delete("agent_metrics", key)
+                await self.redis_handler.delete(self._metric_namespace, key)
             except Exception as e:
                 self.logger.warning(f"Failed to delete confirmed metric key {key}: {e}")

@@ -15,10 +15,13 @@ def _config() -> AgentConfig:
 async def test_redis_loaders_raise_when_handler_missing() -> None:
     buffer = EventBuffer(_config())
     for call in (
-        buffer._load_events_from_redis(),
-        buffer._load_metrics_from_redis(),
-        buffer._load_one_event_from_redis("agent_events:a"),
-        buffer._load_one_metric_from_redis("agent_metrics:a"),
+        buffer._adopt_events_from_instance("dead"),
+        buffer._adopt_metrics_from_instance("dead"),
+        buffer._load_one_event_from_redis("agent_events:dead:a", "agent_events:dead"),
+        buffer._load_one_metric_from_redis(
+            "agent_metrics:dead:a", "agent_metrics:dead"
+        ),
+        buffer.list_persisted_instances(),
         buffer._delete_matching_redis_keys("agent_events", "agent_events:*"),
     ):
         with pytest.raises(GuardAgentError, match="Redis handler is not initialized"):

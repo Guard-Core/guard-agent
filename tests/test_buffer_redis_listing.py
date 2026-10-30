@@ -68,44 +68,57 @@ class HandlerOnlyRedis:
 
 def _seeded_store() -> dict[str, str]:
     return {
-        f"{PREFIX}agent_events:event_1": _event_payload(),
-        f"{PREFIX}agent_events:event_2": _event_payload(),
-        f"{PREFIX}agent_metrics:metric_1": _metric_payload(),
+        f"{PREFIX}agent_events:dead:event_1": _event_payload(),
+        f"{PREFIX}agent_events:dead:event_2": _event_payload(),
+        f"{PREFIX}agent_metrics:dead:metric_1": _metric_payload(),
+        f"{PREFIX}agent_events:live:event_9": _event_payload(),
         f"{PREFIX}other:keep": "1",
     }
 
 
-async def test_the_startup_load_lists_through_the_handler_keys() -> None:
+async def test_a_recovery_lists_through_the_handler_keys_and_startup_lists_none() -> (
+    None
+):
     redis = HandlerOnlyRedis(_seeded_store())
     buffer = _buffer()
 
     await buffer.initialize_redis(cast(Any, redis))
+    assert redis.key_patterns == []
+    assert len(buffer.event_buffer) == 0
 
-    assert redis.key_patterns == ["agent_events:*", "agent_metrics:*"]
+    assert await buffer.recover_orphaned_instance("dead") == (2, 1)
+
+    assert redis.key_patterns == ["agent_events:dead:*", "agent_metrics:dead:*"]
     assert len(buffer.event_buffer) == 2
     assert len(buffer.metric_buffer) == 1
 
 
-async def test_every_cleanup_lists_through_the_handler_keys() -> None:
-    redis = HandlerOnlyRedis(_seeded_store())
+async def test_every_cleanup_lists_only_this_instance_through_the_handler_keys() -> (
+    None
+):
+    store = _seeded_store()
+    store[f"{PREFIX}agent_events:mine:event_1"] = _event_payload()
+    store[f"{PREFIX}agent_events:mine:event_2"] = _event_payload()
+    store[f"{PREFIX}agent_metrics:mine:metric_1"] = _metric_payload()
+    redis = HandlerOnlyRedis(store)
     buffer = _buffer()
+    buffer.instance_id = "mine"
     buffer.redis_handler = cast(Any, redis)
 
     await buffer._clear_events_from_redis(1)
     await buffer._clear_metrics_from_redis(1)
-    assert sorted(redis.store) == [
-        f"{PREFIX}agent_events:event_2",
-        f"{PREFIX}other:keep",
+    assert sorted(k for k in redis.store if ":mine:" in k) == [
+        f"{PREFIX}agent_events:mine:event_2",
     ]
 
     await buffer._clear_redis_buffers()
 
-    assert list(redis.store) == [f"{PREFIX}other:keep"]
+    assert sorted(redis.store) == sorted(_seeded_store())
     assert redis.key_patterns == [
-        "agent_events:*",
-        "agent_metrics:*",
-        "agent_events:*",
-        "agent_metrics:*",
+        "agent_events:mine:*",
+        "agent_metrics:mine:*",
+        "agent_events:mine:*",
+        "agent_metrics:mine:*",
     ]
 
 
@@ -171,11 +184,14 @@ async def test_the_engine_handler_the_buffer_gets_lists_with_scan(
     buffer = _buffer()
     buffer.redis_handler = manager
 
-    await buffer._load_from_redis()
+    assert await buffer.recover_orphaned_instance("dead") == (2, 1)
     assert len(buffer.event_buffer) == 2
     assert len(buffer.metric_buffer) == 1
 
     await buffer._clear_redis_buffers()
 
     left = sorted([k async for k in conn.scan_iter(match=f"{PREFIX}*")])
-    assert left == [f"{PREFIX}other:keep"]
+    assert left == [
+        f"{PREFIX}agent_events:live:event_9",
+        f"{PREFIX}other:keep",
+    ]

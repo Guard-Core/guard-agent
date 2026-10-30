@@ -89,7 +89,9 @@ def test_sync_redis_loads_persists_tracks_and_deletes(
 ) -> None:
     redis = SyncFakeRedis()
     persisted = _event()
-    redis.store["agent_events:old"] = json.dumps(persisted.model_dump(mode="json"))
+    redis.store["agent_events:deadinstance:old"] = json.dumps(
+        persisted.model_dump(mode="json")
+    )
     handler = SyncGuardAgentHandler(agent_config)
     transport = _recording_transport()
     handler._inner.transport = transport
@@ -97,6 +99,11 @@ def test_sync_redis_loads_persists_tracks_and_deletes(
     handler.initialize_redis(redis)
 
     buffer = handler._inner.buffer
+    assert len(buffer.event_buffer) == 0
+    assert handler.list_persisted_instances() == {
+        "deadinstance": {"events": 1, "metrics": 0}
+    }
+    assert handler.recover_orphaned_instance("deadinstance") == (1, 0)
     assert len(buffer.event_buffer) == 1
     assert buffer.redis_persist_failures == 0
 

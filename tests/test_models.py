@@ -20,15 +20,25 @@ from guard_agent.models import (
 class TestAgentConfig:
     """Tests for AgentConfig model."""
 
+    @pytest.mark.parametrize("api_key", ["", "k", "123456789"])
+    def test_an_empty_or_short_api_key_is_refused_at_construction(
+        self, api_key: str
+    ) -> None:
+        with pytest.raises(ValidationError, match="at least 10 characters"):
+            AgentConfig(api_key=api_key)
+
+    def test_a_ten_character_api_key_is_accepted(self) -> None:
+        assert AgentConfig(api_key="1234567890").api_key == "1234567890"
+
     def test_valid_config(self) -> None:
         """Test creating a valid agent configuration."""
         config = AgentConfig(
-            api_key="test-key",
+            api_key="test-key-api-key-1",
             endpoint="https://api.example.com",
             project_id="test-project",
         )
 
-        assert config.api_key == "test-key"
+        assert config.api_key == "test-key-api-key-1"
         assert config.endpoint == "https://api.example.com"
         assert config.project_id == "test-project"
         assert config.buffer_size == 100  # default
@@ -40,7 +50,7 @@ class TestAgentConfig:
 
     def test_config_defaults(self) -> None:
         """Test that default values are set correctly."""
-        config = AgentConfig(api_key="test")
+        config = AgentConfig(api_key="test-api-key-1")
 
         assert config.endpoint == "https://api.guard-core.com"
         assert config.buffer_size == 100
@@ -54,7 +64,7 @@ class TestAgentConfig:
         """The hardcoded expectation runs unconditionally, so guard-agent's
         own drift is caught even when the installed guard_core predates
         _DEFAULT_SENSITIVE_LOG_HEADERS; when it exists, cross-check it too."""
-        config = AgentConfig(api_key="test")
+        config = AgentConfig(api_key="test-api-key-1")
 
         assert config.sensitive_headers == [
             "authorization",
@@ -88,37 +98,41 @@ class TestAgentConfig:
     def test_invalid_endpoint_empty(self) -> None:
         """Test that empty endpoint raises validation error."""
         with pytest.raises(ValidationError, match="Endpoint URL cannot be empty"):
-            AgentConfig(api_key="test", endpoint="")
+            AgentConfig(api_key="test-api-key-1", endpoint="")
 
     def test_invalid_endpoint_no_scheme(self) -> None:
         """Test that endpoint without scheme raises validation error."""
         with pytest.raises(
             ValidationError, match="Endpoint must be a valid URL with scheme and domain"
         ):
-            AgentConfig(api_key="test", endpoint="api.example.com")
+            AgentConfig(api_key="test-api-key-1", endpoint="api.example.com")
 
     def test_invalid_endpoint_no_domain(self) -> None:
         """Test that endpoint without domain raises validation error."""
         with pytest.raises(
             ValidationError, match="Endpoint must be a valid URL with scheme and domain"
         ):
-            AgentConfig(api_key="test", endpoint="https://")
+            AgentConfig(api_key="test-api-key-1", endpoint="https://")
 
     def test_invalid_endpoint_scheme(self) -> None:
         """Test that endpoint with invalid scheme raises validation error."""
         with pytest.raises(
             ValidationError, match="Endpoint URL must use http or https scheme"
         ):
-            AgentConfig(api_key="test", endpoint="ftp://api.example.com")
+            AgentConfig(api_key="test-api-key-1", endpoint="ftp://api.example.com")
 
     def test_valid_endpoint_http(self) -> None:
         """Test that HTTP endpoint is valid."""
-        config = AgentConfig(api_key="test", endpoint="http://api.example.com")
+        config = AgentConfig(
+            api_key="test-api-key-1", endpoint="http://api.example.com"
+        )
         assert config.endpoint == "http://api.example.com"
 
     def test_valid_endpoint_https(self) -> None:
         """Test that HTTPS endpoint is valid."""
-        config = AgentConfig(api_key="test", endpoint="https://api.example.com")
+        config = AgentConfig(
+            api_key="test-api-key-1", endpoint="https://api.example.com"
+        )
         assert config.endpoint == "https://api.example.com"
 
     def test_config_ignores_unknown_kwarg_from_a_newer_caller(self) -> None:
@@ -128,11 +142,11 @@ class TestAgentConfig:
         guard-core releases."""
         config = AgentConfig.model_validate(
             {
-                "api_key": "test",
+                "api_key": "test-api-key-1",
                 "some_future_field_this_version_does_not_know": "value",
             }
         )
-        assert config.api_key == "test"
+        assert config.api_key == "test-api-key-1"
         assert not hasattr(config, "some_future_field_this_version_does_not_know")
 
 

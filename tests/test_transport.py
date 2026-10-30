@@ -1133,7 +1133,7 @@ class TestHTTPTransportEncryption:
 
         valid_key = base64.urlsafe_b64encode(b"0" * 32).decode()
         config = AgentConfig(
-            api_key="test_key",
+            api_key="test_key-api-key-1",
             endpoint="http://test.com",
             project_id="test_project",
             project_encryption_key=valid_key,
@@ -1149,7 +1149,7 @@ class TestHTTPTransportEncryption:
         from guard_agent.encryption import EncryptionConfigError
 
         config = AgentConfig(
-            api_key="test_key",
+            api_key="test_key-api-key-1",
             endpoint="http://test.com",
             project_id="test_project",
             project_encryption_key="invalid_key",
@@ -1167,7 +1167,7 @@ class TestHTTPTransportEncryption:
 
         valid_key = base64.urlsafe_b64encode(b"0" * 32).decode()
         config = AgentConfig(
-            api_key="test_key",
+            api_key="test_key-api-key-1",
             endpoint="http://test.com",
             project_id="test_project",
             project_encryption_key=valid_key,
@@ -1186,7 +1186,7 @@ class TestHTTPTransportEncryption:
         from guard_agent.encryption import EncryptionConfigError, EncryptionError
 
         config = AgentConfig(
-            api_key="test_key",
+            api_key="test_key-api-key-1",
             endpoint="http://test.com",
             project_id="test_project",
             project_encryption_key="some_key",
@@ -1317,7 +1317,7 @@ class TestHTTPTransportEncryption:
 
         valid_key = base64.urlsafe_b64encode(b"0" * 32).decode()
         config = AgentConfig(
-            api_key="test_key",
+            api_key="test_key-api-key-1",
             endpoint="http://test.com",
             project_id="test_project",
             project_encryption_key=valid_key,
@@ -1360,7 +1360,7 @@ class TestHTTPTransportEncryption:
 
         valid_key = base64.urlsafe_b64encode(b"0" * 32).decode()
         config = AgentConfig(
-            api_key="test_key",
+            api_key="test_key-api-key-1",
             endpoint="http://test.com",
             project_id="test_project",
             project_encryption_key=valid_key,
@@ -1403,7 +1403,7 @@ class TestHTTPTransportEncryption:
 
         valid_key = base64.urlsafe_b64encode(b"0" * 32).decode()
         config = AgentConfig(
-            api_key="test_key",
+            api_key="test_key-api-key-1",
             endpoint="http://test.com",
             project_id="test_project",
             project_encryption_key=valid_key,

@@ -372,7 +372,9 @@ class TestGuardAgentHandler:
     async def test_configuration_validation(self) -> None:
         """Test that invalid configuration raises errors."""
         with pytest.raises(ValueError):
-            GuardAgentHandler(AgentConfig(api_key="test-key", endpoint="invalid-url"))
+            GuardAgentHandler(
+                AgentConfig(api_key="test-key-api-key-1", endpoint="invalid-url")
+            )
 
     def test_get_stats(self, agent_config: AgentConfig) -> None:
         """Test getting comprehensive agent statistics."""
@@ -809,9 +811,10 @@ class TestGuardAgentHandler:
     @pytest.mark.asyncio
     async def test_configuration_validation_failure(self) -> None:
         """Test that invalid configuration raises ValueError (line 40)."""
-        # Create a config with invalid api_key (too short)
+        # AgentConfig refuses a short key itself; a config built around that
+        # check still meets the handler's own validation
         with pytest.raises(ValueError, match="Invalid agent configuration"):
-            invalid_config = AgentConfig(
+            invalid_config = AgentConfig.model_construct(
                 api_key="short",  # Too short, needs at least 10 characters
                 endpoint="https://api.example.com",
             )

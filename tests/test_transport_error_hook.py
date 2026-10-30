@@ -15,7 +15,10 @@ from guard_agent.utils import SerializationError
 
 def _config(**kwargs: Any) -> AgentConfig:
     return AgentConfig(
-        api_key="x", endpoint="https://example.com", retry_attempts=0, **kwargs
+        api_key="x-api-key-1",
+        endpoint="https://example.com",
+        retry_attempts=0,
+        **kwargs,
     )
 
 
@@ -30,7 +33,10 @@ def _event() -> SecurityEvent:
 
 
 def test_on_error_defaults_none() -> None:
-    assert AgentConfig(api_key="x", endpoint="https://example.com").on_error is None
+    assert (
+        AgentConfig(api_key="x-api-key-1", endpoint="https://example.com").on_error
+        is None
+    )
 
 
 def test_on_error_accepts_callable() -> None:
@@ -137,7 +143,7 @@ def test_endpoint_strips_legacy_api_v1_suffix(
     import guard_agent.models as models
 
     monkeypatch.setattr(models, "_endpoint_suffix_warned", False)
-    config = AgentConfig(api_key="x", endpoint="https://example.com/api/v1")
+    config = AgentConfig(api_key="x-api-key-1", endpoint="https://example.com/api/v1")
     assert config.endpoint == "https://example.com"
 
 
@@ -147,7 +153,7 @@ def test_endpoint_strip_does_not_rewarn_when_already_warned(
     import guard_agent.models as models
 
     monkeypatch.setattr(models, "_endpoint_suffix_warned", True)
-    config = AgentConfig(api_key="x", endpoint="https://example.com/api/v1")
+    config = AgentConfig(api_key="x-api-key-1", endpoint="https://example.com/api/v1")
     assert config.endpoint == "https://example.com"
 
 

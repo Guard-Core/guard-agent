@@ -29,12 +29,12 @@ def _metric() -> SecurityMetric:
 
 
 def test_buffer_block_timeout_defaults_to_one_second() -> None:
-    assert AgentConfig(api_key="k").buffer_block_timeout == 1.0
+    assert AgentConfig(api_key="k-api-key-1").buffer_block_timeout == 1.0
 
 
 def test_buffer_block_timeout_must_be_positive() -> None:
     with pytest.raises(ValueError):
-        AgentConfig(api_key="k", buffer_block_timeout=0)
+        AgentConfig(api_key="k-api-key-1", buffer_block_timeout=0)
 
 
 @pytest.mark.asyncio
@@ -42,7 +42,7 @@ async def test_block_policy_event_waits_at_most_the_timeout_then_drops(
     caplog: LogCaptureFixture,
 ) -> None:
     config = AgentConfig(
-        api_key="k",
+        api_key="k-api-key-1",
         buffer_size=1,
         buffer_overflow_policy="block",
         buffer_block_timeout=0.1,
@@ -67,7 +67,7 @@ async def test_block_policy_metric_waits_at_most_the_timeout_then_drops(
     caplog: LogCaptureFixture,
 ) -> None:
     config = AgentConfig(
-        api_key="k",
+        api_key="k-api-key-1",
         buffer_size=1,
         buffer_overflow_policy="block",
         buffer_block_timeout=0.1,
@@ -92,7 +92,7 @@ async def test_block_policy_timeout_warning_is_sampled(
     caplog: LogCaptureFixture,
 ) -> None:
     config = AgentConfig(
-        api_key="k",
+        api_key="k-api-key-1",
         buffer_size=1,
         buffer_overflow_policy="block",
         buffer_block_timeout=0.01,
@@ -112,7 +112,7 @@ async def test_block_policy_timeout_warning_is_sampled(
 @pytest.mark.asyncio
 async def test_block_policy_still_admits_when_space_frees_within_timeout() -> None:
     config = AgentConfig(
-        api_key="k",
+        api_key="k-api-key-1",
         buffer_size=1,
         buffer_overflow_policy="block",
         buffer_block_timeout=2.0,
@@ -133,7 +133,7 @@ async def test_block_policy_metric_timeout_warning_is_sampled(
     caplog: LogCaptureFixture,
 ) -> None:
     config = AgentConfig(
-        api_key="k",
+        api_key="k-api-key-1",
         buffer_size=1,
         buffer_overflow_policy="block",
         buffer_block_timeout=0.01,

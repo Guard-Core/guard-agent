@@ -14,7 +14,7 @@ def _make_config(
     max_concurrent_flushes: int = 1,
 ) -> AgentConfig:
     return AgentConfig(
-        api_key="test-key",
+        api_key="test-key-api-key-1",
         endpoint="http://localhost:8000",
         buffer_size=buffer_size,
         flush_interval=int(flush_interval),

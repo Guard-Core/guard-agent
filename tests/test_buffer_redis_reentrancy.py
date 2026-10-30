@@ -32,7 +32,12 @@ def _metric() -> SecurityMetric:
 
 def _buffer(**kw: Any) -> EventBuffer:
     return EventBuffer(
-        AgentConfig(api_key="k", endpoint="http://localhost:8000", project_id="p", **kw)
+        AgentConfig(
+            api_key="k-api-key-1",
+            endpoint="http://localhost:8000",
+            project_id="p",
+            **kw,
+        )
     )
 
 
@@ -222,7 +227,7 @@ def test_startup_failure_message_includes_cause() -> None:
     from guard_agent.encryption import EncryptionConfigError
 
     cfg = AgentConfig(
-        api_key="x",
+        api_key="x-api-key-1",
         endpoint="https://example.com",
         project_encryption_key="not-a-valid-key",
     )

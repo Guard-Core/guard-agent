@@ -17,7 +17,9 @@ REDIS_URL = os.getenv("REDIS_URL") or "redis://localhost:6379"
 
 def _buffer() -> EventBuffer:
     return EventBuffer(
-        AgentConfig(api_key="k", endpoint="http://localhost:8000", project_id="p")
+        AgentConfig(
+            api_key="k-api-key-1", endpoint="http://localhost:8000", project_id="p"
+        )
     )
 
 

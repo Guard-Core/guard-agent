@@ -280,7 +280,7 @@ class HTTPTransport:
 
 ```python
 class AgentConfig(BaseModel):
-    api_key: str
+    api_key: str  # at least 10 characters
     endpoint: str = "https://api.guard-core.com"
     project_id: str | None = None
     buffer_size: int = 100

@@ -10,7 +10,7 @@ from guard_agent.transport import HTTPTransport
 @pytest.fixture
 def config_with_retry() -> AgentConfig:
     return AgentConfig(
-        api_key="test-key",
+        api_key="test-key-api-key-1",
         endpoint="http://example.com",
         project_id="proj",
         retry_attempts=2,
@@ -106,7 +106,7 @@ async def test_retry_reuses_same_batch_id_for_metrics(
 @pytest.mark.asyncio
 async def test_initialize_without_project_id() -> None:
     config = AgentConfig(
-        api_key="test-key",
+        api_key="test-key-api-key-1",
         endpoint="http://example.com",
         retry_attempts=0,
         timeout=5,
@@ -128,7 +128,7 @@ async def test_initialize_without_project_id() -> None:
 @pytest.mark.asyncio
 async def test_close_when_client_is_none() -> None:
     config = AgentConfig(
-        api_key="test-key",
+        api_key="test-key-api-key-1",
         endpoint="http://example.com",
         retry_attempts=0,
         timeout=5,

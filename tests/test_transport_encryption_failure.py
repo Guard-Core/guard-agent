@@ -9,7 +9,7 @@ from guard_agent.transport import HTTPTransport
 
 def test_encryption_init_failure_raises_not_falls_back() -> None:
     config = AgentConfig(
-        api_key="x",
+        api_key="x-api-key-1",
         endpoint="https://example.com",
         project_encryption_key="not-a-valid-key",
     )
@@ -20,7 +20,7 @@ def test_encryption_init_failure_raises_not_falls_back() -> None:
 def test_encryption_init_succeeds_with_valid_key() -> None:
     valid_key = base64.urlsafe_b64encode(b"a" * 32).decode()
     config = AgentConfig(
-        api_key="x",
+        api_key="x-api-key-1",
         endpoint="https://example.com",
         project_encryption_key=valid_key,
     )

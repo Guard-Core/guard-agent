@@ -29,7 +29,7 @@ def _make_mock_client() -> AsyncMock:
 async def test_post_encrypted_adds_signature_header_when_secret_set() -> None:
     valid_key = base64.urlsafe_b64encode(b"0" * 32).decode()
     config = AgentConfig(
-        api_key="test_key",
+        api_key="test_key-api-key-1",
         endpoint="http://test.com",
         project_id="test_project",
         project_encryption_key=valid_key,
@@ -55,7 +55,7 @@ async def test_post_encrypted_adds_signature_header_when_secret_set() -> None:
 @pytest.mark.asyncio
 async def test_post_unencrypted_adds_signature_header_when_secret_set() -> None:
     config = AgentConfig(
-        api_key="test_key",
+        api_key="test_key-api-key-1",
         endpoint="http://test.com",
         project_id="test_project",
         payload_signing_secret="my-hmac-secret",
@@ -78,7 +78,7 @@ async def test_post_unencrypted_adds_signature_header_when_secret_set() -> None:
 async def test_post_encrypted_omits_signature_header_when_secret_absent() -> None:
     valid_key = base64.urlsafe_b64encode(b"0" * 32).decode()
     config = AgentConfig(
-        api_key="test_key",
+        api_key="test_key-api-key-1",
         endpoint="http://test.com",
         project_id="test_project",
         project_encryption_key=valid_key,
@@ -102,7 +102,7 @@ async def test_post_encrypted_omits_signature_header_when_secret_absent() -> Non
 @pytest.mark.asyncio
 async def test_post_unencrypted_omits_signature_header_when_secret_absent() -> None:
     config = AgentConfig(
-        api_key="test_key",
+        api_key="test_key-api-key-1",
         endpoint="http://test.com",
         project_id="test_project",
     )

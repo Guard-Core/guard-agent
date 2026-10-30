@@ -202,7 +202,7 @@ try:
     # Validate integrated configuration
     config = SecurityConfig(
         enable_agent=True,
-        agent_api_key="test-key",
+        agent_api_key="test-api-key-1234",
         agent_project_id="test-project"
     )
     app.add_middleware(SecurityMiddleware, config=config)

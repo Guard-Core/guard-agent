@@ -52,7 +52,7 @@ class TestPerformanceImpact:
             rate_limit=1000,
             enable_agent=True,
             enable_redis=False,
-            agent_api_key="test-key",
+            agent_api_key="test-key-api-key-1",
             agent_project_id="test-project",
             exclude_paths=["/test"],
             passive_mode=True,
@@ -203,7 +203,7 @@ class TestPerformanceImpact:
     @pytest.mark.asyncio
     async def test_buffer_performance(self) -> None:
         """Test buffer performance under load."""
-        config = AgentConfig(api_key="test", buffer_size=1000)
+        config = AgentConfig(api_key="test-api-key-1", buffer_size=1000)
         buffer = EventBuffer(config)
 
         # Mock Redis to avoid external dependencies
@@ -240,7 +240,7 @@ class TestPerformanceImpact:
     @pytest.mark.asyncio
     async def test_transport_performance(self) -> None:
         """Test transport performance under load."""
-        config = AgentConfig(api_key="test", timeout=1)
+        config = AgentConfig(api_key="test-api-key-1", timeout=1)
         transport = HTTPTransport(config)
 
         # Mock HTTP client

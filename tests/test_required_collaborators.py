@@ -9,7 +9,9 @@ from guard_agent.transport import HTTPTransport
 
 
 def _config() -> AgentConfig:
-    return AgentConfig(api_key="k", endpoint="http://localhost:8000", project_id="p")
+    return AgentConfig(
+        api_key="k-api-key-1", endpoint="http://localhost:8000", project_id="p"
+    )
 
 
 async def test_redis_loaders_raise_when_handler_missing() -> None:

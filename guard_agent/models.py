@@ -67,7 +67,7 @@ class AgentConfig(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    api_key: str = Field(description="Guard Agent API key")
+    api_key: str = Field(min_length=10, description="Guard Agent API key")
     endpoint: str = Field(
         default="https://api.guard-core.com", description="Agent endpoint URL"
     )

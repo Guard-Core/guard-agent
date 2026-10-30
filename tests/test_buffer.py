@@ -131,7 +131,9 @@ class TestBufferOverflowConcurrency:
     async def test_concurrent_add_event_at_capacity_leaves_no_orphaned_key(
         self,
     ) -> None:
-        config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="drop")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=2, buffer_overflow_policy="drop"
+        )
         buffer = EventBuffer(config)
         fake_redis = YieldingFakeRedisHandler()
         await buffer.initialize_redis(fake_redis)
@@ -158,7 +160,9 @@ class TestBufferOverflowConcurrency:
     async def test_concurrent_add_metric_at_capacity_leaves_no_orphaned_key(
         self,
     ) -> None:
-        config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="drop")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=2, buffer_overflow_policy="drop"
+        )
         buffer = EventBuffer(config)
         fake_redis = YieldingFakeRedisHandler()
         await buffer.initialize_redis(fake_redis)
@@ -189,7 +193,7 @@ class TestBufferOverflowConcurrency:
         which fails and requeues, interleaved with a concurrent add_event,
         must not corrupt the buffer or orphan a tracked Redis key."""
         config = AgentConfig(
-            api_key="k",
+            api_key="k-api-key-1",
             buffer_size=3,
             buffer_overflow_policy="drop",
             max_concurrent_flushes=2,
@@ -251,7 +255,7 @@ class TestBufferClearInvariant:
     async def test_clear_buffer_clears_redis_key_maps(
         self, security_event: SecurityEvent, security_metric: SecurityMetric
     ) -> None:
-        config = AgentConfig(api_key="k")
+        config = AgentConfig(api_key="k-api-key-1")
         buffer = EventBuffer(config)
         fake_redis = FakeRedisHandler()
         await buffer.initialize_redis(fake_redis)
@@ -273,7 +277,9 @@ class TestBufferClearInvariant:
     ) -> None:
         """Walks add/flush/requeue/clear and checks the invariant after
         each step, not just at the end."""
-        config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="drop")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=2, buffer_overflow_policy="drop"
+        )
         buffer = EventBuffer(config)
         fake_redis = FakeRedisHandler()
         await buffer.initialize_redis(fake_redis)
@@ -318,7 +324,9 @@ class TestBufferBlockPolicyStarvation:
     async def _run_one_iteration(self) -> None:
         from guard_agent import _buffer_queue
 
-        config = AgentConfig(api_key="k", buffer_size=1, buffer_overflow_policy="block")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=1, buffer_overflow_policy="block"
+        )
         buffer = EventBuffer(config)
 
         class RaisingTransport:
@@ -376,7 +384,9 @@ class TestBufferBlockPolicyStarvation:
     ) -> None:
         from guard_agent import _buffer_queue
 
-        config = AgentConfig(api_key="k", buffer_size=1, buffer_overflow_policy="block")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=1, buffer_overflow_policy="block"
+        )
         buffer = EventBuffer(config)
 
         class RaisingTransport:
@@ -437,7 +447,7 @@ class TestFlushBoundaryExceptionHandling:
     ) -> None:
         calls: list[tuple[str, BaseException, dict]] = []
         config = AgentConfig(
-            api_key="k", on_error=lambda s, e, c: calls.append((s, e, c))
+            api_key="k-api-key-1", on_error=lambda s, e, c: calls.append((s, e, c))
         )
         buffer = EventBuffer(config)
 
@@ -473,7 +483,7 @@ class TestFlushBoundaryExceptionHandling:
     ) -> None:
         calls: list[tuple[str, BaseException, dict]] = []
         config = AgentConfig(
-            api_key="k", on_error=lambda s, e, c: calls.append((s, e, c))
+            api_key="k-api-key-1", on_error=lambda s, e, c: calls.append((s, e, c))
         )
         buffer = EventBuffer(config)
 
@@ -508,7 +518,7 @@ class TestFlushBoundaryExceptionHandling:
         def bad_hook(stage: str, exc: BaseException, ctx: dict) -> None:
             raise RuntimeError("hook fail")
 
-        config = AgentConfig(api_key="k", on_error=bad_hook)
+        config = AgentConfig(api_key="k-api-key-1", on_error=bad_hook)
         buffer = EventBuffer(config)
 
         class RaisingTransport:
@@ -1058,7 +1068,7 @@ class TestBufferLoadFromRedis:
         add_event traffic touching the same deque and Redis-key map."""
         from guard_agent.utils import safe_json_serialize
 
-        config = AgentConfig(api_key="k", buffer_size=20)
+        config = AgentConfig(api_key="k-api-key-1", buffer_size=20)
         buffer = EventBuffer(config)
         fake_redis = YieldingFakeRedisHandler()
 
@@ -1087,7 +1097,7 @@ class TestBufferLoadFromRedis:
         """C31: mirrors the event case for metrics."""
         from guard_agent.utils import safe_json_serialize
 
-        config = AgentConfig(api_key="k", buffer_size=20)
+        config = AgentConfig(api_key="k-api-key-1", buffer_size=20)
         buffer = EventBuffer(config)
         fake_redis = YieldingFakeRedisHandler()
 
@@ -1118,7 +1128,7 @@ class TestBufferLoadFromRedis:
         the load must forget that key before its own append evicts it."""
         from guard_agent.utils import safe_json_serialize
 
-        config = AgentConfig(api_key="k", buffer_size=1)
+        config = AgentConfig(api_key="k-api-key-1", buffer_size=1)
         buffer = EventBuffer(config)
 
         persist_gate = asyncio.Event()
@@ -1159,7 +1169,7 @@ class TestBufferLoadFromRedis:
         """C31, decisive: mirrors the event case for metrics."""
         from guard_agent.utils import safe_json_serialize
 
-        config = AgentConfig(api_key="k", buffer_size=1)
+        config = AgentConfig(api_key="k-api-key-1", buffer_size=1)
         buffer = EventBuffer(config)
 
         persist_gate = asyncio.Event()
@@ -1476,7 +1486,7 @@ class TestBufferOverflowDropTracking:
     async def test_overflow_drop_deletes_dropped_items_redis_record(self) -> None:
         """C21: dropping the oldest event on overflow must delete its Redis
         record too, not just forget the in-memory pointer, or it orphans."""
-        config = AgentConfig(api_key="k", endpoint="http://x", buffer_size=2)
+        config = AgentConfig(api_key="k-api-key-1", endpoint="http://x", buffer_size=2)
         buffer = EventBuffer(config)
         fake_redis = FakeRedisHandler()
         await buffer.initialize_redis(fake_redis)
@@ -1774,7 +1784,7 @@ class TestBufferConfirmAndRequeue:
         """C19: appendleft evicts the tail when the buffer is full, so the
         tail's key (not the head's) must be the one forgotten and its
         Redis record confirmed, reproducing the critic's exact sequence."""
-        config = AgentConfig(api_key="k", endpoint="http://x", buffer_size=2)
+        config = AgentConfig(api_key="k-api-key-1", endpoint="http://x", buffer_size=2)
         buffer = EventBuffer(config)
         fake_redis = FakeRedisHandler()
         await buffer.initialize_redis(fake_redis)
@@ -2014,7 +2024,7 @@ class TestBufferOverflowPolicy:
     """Tests for the configurable buffer_overflow_policy."""
 
     def test_overflow_policy_default_is_drop(self) -> None:
-        config = AgentConfig(api_key="k")
+        config = AgentConfig(api_key="k-api-key-1")
         assert config.buffer_overflow_policy == "drop"
 
     def test_buffer_full_error_is_guard_agent_error(self) -> None:
@@ -2025,7 +2035,9 @@ class TestBufferOverflowPolicy:
     async def test_overflow_policy_drop_evicts_oldest_and_increments_counter(
         self, security_event: SecurityEvent
     ) -> None:
-        config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="drop")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=2, buffer_overflow_policy="drop"
+        )
         buffer = EventBuffer(config)
 
         first = SecurityEvent(
@@ -2055,7 +2067,9 @@ class TestBufferOverflowPolicy:
 
     @pytest.mark.asyncio
     async def test_metric_overflow_policy_drop_evicts_oldest(self) -> None:
-        config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="drop")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=2, buffer_overflow_policy="drop"
+        )
         buffer = EventBuffer(config)
 
         first = SecurityMetric(
@@ -2087,7 +2101,9 @@ class TestBufferOverflowPolicy:
     async def test_overflow_policy_raise_throws_buffer_full_error_for_events(
         self, security_event: SecurityEvent
     ) -> None:
-        config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="raise")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=2, buffer_overflow_policy="raise"
+        )
         buffer = EventBuffer(config)
 
         await buffer.add_event(security_event)
@@ -2103,7 +2119,9 @@ class TestBufferOverflowPolicy:
     async def test_overflow_policy_raise_throws_buffer_full_error_for_metrics(
         self, security_metric: SecurityMetric
     ) -> None:
-        config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="raise")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=2, buffer_overflow_policy="raise"
+        )
         buffer = EventBuffer(config)
 
         await buffer.add_metric(security_metric)
@@ -2122,7 +2140,9 @@ class TestBufferOverflowPolicy:
         mock_redis_handler: AsyncMock,
         caplog: LogCaptureFixture,
     ) -> None:
-        config = AgentConfig(api_key="k", buffer_size=1, buffer_overflow_policy="raise")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=1, buffer_overflow_policy="raise"
+        )
         buffer = EventBuffer(config)
         await buffer.initialize_redis(mock_redis_handler)
         await buffer.add_event(security_event)
@@ -2137,7 +2157,9 @@ class TestBufferOverflowPolicy:
     async def test_overflow_policy_block_awaits_until_space_frees_for_events(
         self, security_event: SecurityEvent
     ) -> None:
-        config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="block")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=2, buffer_overflow_policy="block"
+        )
         buffer = EventBuffer(config)
 
         await buffer.add_event(security_event)
@@ -2163,7 +2185,9 @@ class TestBufferOverflowPolicy:
     async def test_overflow_policy_block_awaits_until_space_frees_for_metrics(
         self, security_metric: SecurityMetric
     ) -> None:
-        config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="block")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=2, buffer_overflow_policy="block"
+        )
         buffer = EventBuffer(config)
 
         await buffer.add_metric(security_metric)
@@ -2205,7 +2229,9 @@ class TestBufferOverflowPolicy:
     async def test_get_condition_returns_existing_when_already_initialized(
         self,
     ) -> None:
-        config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="block")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=2, buffer_overflow_policy="block"
+        )
         buffer = EventBuffer(config)
 
         first_event = buffer._get_event_condition()
@@ -2220,7 +2246,9 @@ class TestBufferOverflowPolicy:
     async def test_overflow_policy_block_resumes_via_clear_buffer(
         self, security_event: SecurityEvent, security_metric: SecurityMetric
     ) -> None:
-        config = AgentConfig(api_key="k", buffer_size=1, buffer_overflow_policy="block")
+        config = AgentConfig(
+            api_key="k-api-key-1", buffer_size=1, buffer_overflow_policy="block"
+        )
         buffer = EventBuffer(config)
 
         await buffer.add_event(security_event)

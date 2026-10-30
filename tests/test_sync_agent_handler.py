@@ -206,3 +206,6 @@ def test_sync_handler_stop_thread_already_dead(
         sync_handler.stop()
 
     inner.transport.close.assert_awaited_once()
+    # stop() released the singleton, so the fixture no longer reaches this loop
+    sync_handler._thread.join(timeout=2)
+    sync_handler._loop.close()

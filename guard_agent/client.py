@@ -248,6 +248,14 @@ class SyncGuardAgentHandler:
             self._thread.join(timeout=5)
         if not self._thread.is_alive() and not self._loop.is_running():
             self._loop.close()
+        self._release_singletons()
+
+    def _release_singletons(self) -> None:
+        """Let the next constructor build a working agent, not this stopped one."""
+        if SyncGuardAgentHandler._instance is self:
+            SyncGuardAgentHandler._instance = None
+        if GuardAgentHandler._instance is self._inner:
+            GuardAgentHandler._instance = None
 
     def send_event(self, event: object) -> None:
         self._run(self._inner.send_event(event))

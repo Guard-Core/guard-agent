@@ -29,6 +29,11 @@ from guard_agent.utils import (
 _MAX_RETRY_AFTER_SECONDS = 300.0
 
 
+def _is_a_rule_set(body: Mapping[str, JsonValue]) -> bool:
+    """A rules body names its rule and version; an error shape names neither."""
+    return isinstance(body.get("rule_id"), str) and isinstance(body.get("version"), int)
+
+
 class TransportSendMixin(TransportDispatchMixin):
     config: AgentConfig
     logger: logging.Logger
@@ -155,6 +160,12 @@ class TransportSendMixin(TransportDispatchMixin):
                 return self._held_rules_after_not_modified()
 
             if response_data:
+                if not _is_a_rule_set(response_data):
+                    self.logger.warning(
+                        "Ignoring a rules response that is not a rule set "
+                        "(no rule_id and version)"
+                    )
+                    return None
                 rules = DynamicRules(**response_data)
                 self._held_rules = rules
                 self._held_rules_etag = (

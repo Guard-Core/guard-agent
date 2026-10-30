@@ -154,7 +154,12 @@ class GuardAgentHandler(IngestMixin, LoopsMixin, AgentHandlerProtocol):
     async def stop(self) -> None:
         self._running = False
 
-        tasks = [self._flush_task, self._status_task, self._rules_task]
+        tasks = [
+            self._flush_task,
+            self._status_task,
+            self._rules_task,
+            self._rules_inflight,
+        ]
         for task in tasks:
             if task and not task.done():
                 task.cancel()

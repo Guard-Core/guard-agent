@@ -651,7 +651,9 @@ class TestHTTPTransport:
             with patch("asyncio.sleep"):
                 mock_response = AsyncMock()
                 mock_response.status_code = 200
-                mock_response.json = MagicMock(return_value={"status": "ok"})
+                mock_response.json = MagicMock(
+                    return_value={"rule_id": "retried", "version": 1}
+                )
                 mock_client.get.return_value = mock_response
 
                 rules = await transport.fetch_dynamic_rules()
@@ -1067,7 +1069,8 @@ class TestHTTPTransport:
         # return invalid data that will cause DynamicRules(**response_data) to fail
         # Using invalid data types that will cause Pydantic validation errors
         invalid_response_data = {
-            "version": "not_an_integer",  # version expects int
+            "rule_id": "invalid-rule",
+            "version": 1,
             "timestamp": "invalid_datetime_format",  # timestamp expects datetime
             "ttl": "not_an_integer",  # ttl expects int
         }

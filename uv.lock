@@ -1687,7 +1687,7 @@ requires-dist = [
     { name = "tornadoapi-guard", marker = "extra == 'dev'", specifier = ">=2.0.0" },
     { name = "types-psutil", marker = "extra == 'dev'" },
     { name = "types-setuptools", marker = "extra == 'dev'" },
-    { name = "typing-extensions" },
+    { name = "typing-extensions", specifier = ">=4.10.0" },
     { name = "vulture", marker = "extra == 'dev'" },
     { name = "xenon", marker = "extra == 'dev'" },
 ]

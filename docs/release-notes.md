@@ -17,6 +17,10 @@ Behavior changes since v3.2.4
 - **Rule fetches and status calls have their own rate budgets.** Rule fetches and status each get 10 calls per 60 seconds, telemetry keeps 100 per 60 seconds. On the rules path a limiter wait no longer consumes a retry attempt, and a permanently rejected rules GET (a 4xx the server will not change) is no longer retried.
 - **Wrong-shape payloads raise `TypeError`, a missing Redis handler or HTTP client raises `GuardAgentError`.** These guards were `assert` statements that vanish under `python -O`, and the client initialization failure was a bare `Exception`. The dispatch path still catches them, so a malformed batch fails the same way. Code that caught `AssertionError` or matched on the bare `Exception` type must catch `TypeError` or `GuardAgentError`.
 - **`on_error` and `SecurityEvent.metadata` are typed `dict[str, object]` instead of `dict[str, Any]`.** Runtime behavior is unchanged. Type checkers now require narrowing a value before use.
+- **A rules response is held only when it is a rule set.** A 200 JSON body must carry a string `rule_id` and an integer `version`; an error shape such as `{"success": false, "errors": [...]}` is logged and ignored, and the rules held so far stay in force, instead of becoming a default rule set that later polls reported as `last_rule_id=default-rule`.
+- **`stop()` cancels and awaits the in-flight rules request** before it closes the transport, so a shutdown no longer leaves the shared request running against a closed client.
+- **A sync Redis handler method that returns an awaitable is awaited.** A plain function whose result is a coroutine is classified as sync and used to store the un-awaited coroutine; the wrapper now awaits it.
+- **`typing-extensions` needs 4.10.0 or newer** (`TypeIs`), where the dependency had no floor.
 
 ### Added
 

@@ -19,7 +19,7 @@ The package was renamed from `fastapi-guard-agent` to `guard-agent` in v2.0.0 to
 
 ## Ecosystem Position
 
-```
+```text
 adapters (fastapi-guard, flaskapi-guard, djapi-guard, tornadoapi-guard)
     └── guard-agent (this repo)   <- telemetry client: buffer, encrypt, sign, ship
             └── guard-core-app ingestion (api.guard-core.com)  <- SaaS API, dashboard

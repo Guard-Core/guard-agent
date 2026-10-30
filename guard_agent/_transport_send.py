@@ -232,7 +232,7 @@ class TransportSendMixin(TransportDispatchMixin):
             )
             self.requests_failed += 1
             return False
-        if result:
+        if result or isinstance(result, dict):
             self.requests_sent += 1
             self.logger.debug(f"Successfully sent {data_type} batch")
             return True
@@ -350,6 +350,10 @@ class TransportSendMixin(TransportDispatchMixin):
                     return response_data
                 else:
                     self.requests_failed += 1
+                    if attempt < self.config.retry_attempts:
+                        await asyncio.sleep(
+                            calculate_backoff_delay(attempt, self.config.backoff_factor)
+                        )
 
             except RateLimitedError as e:
                 await self._back_off_after_rate_limited_get(e, endpoint, attempt)

@@ -50,6 +50,7 @@ class ETaggedResponse(dict[str, JsonValue]):
 
 class TransportResponseMixin:
     logger: logging.Logger
+    _odd_success_body_warned: bool = False
 
     def _log_request_error(self, method: str, url: str, exc: Exception) -> None:
         """Classify and log a request-level exception."""
@@ -63,6 +64,17 @@ class TransportResponseMixin:
             label = "Unexpected error"
         self.logger.error(f"{label} for {method} {url}: {type(exc).__name__}: {exc!r}")
 
+    def _warn_odd_success_body(self, response: httpx.Response, shape: str) -> None:
+        if self._odd_success_body_warned:
+            return
+        self._odd_success_body_warned = True
+        self.logger.warning(
+            f"{response.status_code} response for {response.url} has {shape} "
+            "instead of a JSON object; the ingestion API answers an accepted "
+            "batch with a TelemetryResponse or HeartbeatResponse object, so the "
+            "batch is counted as delivered. Logged once."
+        )
+
     def _handle_200(self, response: httpx.Response) -> dict[str, JsonValue] | bool:
         try:
             json_data = response.json()
@@ -71,8 +83,15 @@ class TransportResponseMixin:
                 f"200 response with unparseable JSON body for {response.url}: "
                 f"{type(exc).__name__}: {exc}"
             )
-            return False
+            self._warn_odd_success_body(
+                response, "a body that is not JSON (no success body)"
+            )
+            return True
         if isinstance(json_data, dict):
+            if not json_data:
+                self._warn_odd_success_body(
+                    response, "an empty JSON object (no success body)"
+                )
             success = json_data.get("success")
             errors = json_data.get("errors")
             if success is False or errors:
@@ -81,6 +100,9 @@ class TransportResponseMixin:
                     f"success={success!r} errors={errors!r}"
                 )
             return json_data
+        self._warn_odd_success_body(
+            response, "a JSON value that is not an object (no success body)"
+        )
         return True
 
     def _raise_for_permanent_error(self, status_code: int, error_text: str) -> NoReturn:

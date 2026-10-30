@@ -809,7 +809,7 @@ class TestHTTPTransport:
     async def test_handle_response_200_non_json(
         self, agent_config: AgentConfig
     ) -> None:
-        """Test _handle_response with 200 status and non-JSON content."""
+        """A 200 with non-JSON content is counted as accepted, not retried."""
         transport = HTTPTransport(agent_config)
         mock_response = AsyncMock()
         mock_response.status_code = 200
@@ -817,7 +817,7 @@ class TestHTTPTransport:
         mock_response.url = "http://test.com"
 
         result = await transport._handle_response(mock_response)
-        assert result is False
+        assert result is True
 
     @pytest.mark.asyncio
     async def test_handle_response_200_non_dict_json(

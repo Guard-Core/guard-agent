@@ -107,6 +107,16 @@ class AgentConfig(BaseModel):
             "'raise' throws BufferFullError so callers can react."
         ),
     )
+    stop_timeout: float = Field(
+        default=5.0,
+        gt=0,
+        description=(
+            "Overall seconds stop() spends on its last flush. Each batch is sent "
+            "once, without retries or backoff; what is still unsent after the "
+            "deadline stays in Redis when it is configured and is counted as "
+            "lost otherwise."
+        ),
+    )
     buffer_block_timeout: float = Field(
         default=1.0,
         gt=0,

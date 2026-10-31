@@ -1,7 +1,9 @@
+import asyncio
 import logging
 import time
 from typing import Protocol
 
+from guard_agent._transport_lifecycle import TransportLifecycleMixin
 from guard_agent.buffer import EventBuffer
 from guard_agent.models import AgentConfig, SecurityEvent, SecurityMetric
 from guard_agent.utils import calculate_backoff_delay, fire_error_hook
@@ -19,6 +21,13 @@ def _refused_for_quota(transport: object) -> int:
     """The transport's lifetime count of batches the server refused for quota."""
     count = getattr(transport, "batches_refused_for_quota", 0)
     return count if isinstance(count, int) else 0
+
+
+def _queued_counts(buffer: object) -> tuple[int, int]:
+    """Events and metrics waiting in a real buffer; a stand-in buffer holds none."""
+    if not isinstance(buffer, EventBuffer):
+        return 0, 0
+    return len(buffer.event_buffer), len(buffer.metric_buffer)
 
 
 class FlushTransport(Protocol):
@@ -68,6 +77,34 @@ class FlushMixin:
             await self._flush_metrics()
         except Exception as e:
             self.logger.error(f"Error during buffer flush: {str(e)}")
+
+    async def _flush_for_stop(self) -> None:
+        """The last flush of stop(): one attempt per batch, bounded overall."""
+        if isinstance(self.transport, TransportLifecycleMixin):
+            self.transport.begin_shutdown()
+        try:
+            await asyncio.wait_for(self.flush_buffer(), self.config.stop_timeout)
+        except asyncio.TimeoutError:
+            self.logger.debug("stop(): the last flush hit its deadline")
+        await self._account_unsent_at_stop()
+
+    async def _account_unsent_at_stop(self) -> None:
+        events, metrics = _queued_counts(self.buffer)
+        if not events and not metrics:
+            return
+        if self.buffer.redis_handler is not None:
+            self.logger.warning(
+                f"stop(): {events} events and {metrics} metrics are still unsent; "
+                f"they stay in Redis (instance {self.buffer.instance_id}) for "
+                f"recover_orphaned_instance() until their TTL"
+            )
+            return
+        self.events_failed += events
+        self.metrics_failed += metrics
+        self.logger.warning(
+            f"stop(): {events} events and {metrics} metrics could not be sent "
+            f"before the stop deadline and are lost"
+        )
 
     async def _flush_events(self) -> None:
         if time.time() < self._events_retry_after:

@@ -109,6 +109,7 @@ All behavior is `AgentConfig` (Pydantic). Key fields and their defaults:
 | `project_id` | `None` | SaaS project the telemetry is attributed to |
 | `buffer_size` | `100` | Per-buffer deque capacity (events and metrics each) |
 | `flush_interval` | `30` | Seconds between automatic flushes |
+| `stop_timeout` | `5.0` | Overall seconds of `stop()`'s last flush: one attempt per batch, no retries; unsent items stay in Redis or are counted lost |
 | `buffer_block_timeout` | `1.0` | Seconds the `block` policy waits for space before dropping the new entry with a sampled warning |
 | `high_watermark_ratio` | `0.8` | Occupancy fraction that triggers an early flush |
 | `buffer_overflow_policy` | `"drop"` | Overflow behavior: `drop` (evict oldest), `block` (backpressure), `raise` (`BufferFullError`) |
@@ -136,6 +137,8 @@ Adapters expose the same knobs as `agent_*` fields on guard-core's `SecurityConf
 **Quota refusal.** The SaaS answers a batch of a project over its event quota with HTTP 200, `success: false` and `quota_exceeded: true`. The agent backs off as for any failed flush and drops the batch (counted in `events_failed` / `metrics_failed`, Redis keys deleted) once `retry_attempts + 1` flushes in a row were refused for quota. Events the SaaS answers with `events_dropped_invalid_timestamp` are lost and counted in `events_failed`, not `events_sent`.
 
 **Permanent rejection.** HTTP 400 / 404 / 422 raises `PermanentClientError`; the batch is dropped with a warning, never requeued, so a poison batch cannot loop forever.
+
+**Stop.** `stop()` flushes once more with a single attempt per batch inside `stop_timeout` seconds. Items still unsent stay in Redis (when configured) or are counted in `events_failed` / `metrics_failed`, with one WARNING.
 
 **Requeue.** `send_events` / `send_metrics` return `True` when the batch was durably accepted OR intentionally dropped because it is permanently un-sendable (Redis keys are then deleted), and `False` only on transient failure. A `False` return means the caller requeues the items in memory and retains the Redis keys. A `True` return therefore does not by itself mean the events reached the dashboard; permanent drops are also `True`.
 

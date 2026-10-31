@@ -24,9 +24,12 @@ REFUSED: list[tuple[str, object]] = [
     ("max_concurrent_flushes", 0),
     ("max_concurrent_flushes", -2),
     ("compression_threshold", -1),
+    ("stop_timeout", 0),
+    ("stop_timeout", -1),
 ]
 
 ACCEPTED: list[tuple[str, object]] = [
+    ("stop_timeout", 0.5),
     ("buffer_size", 1),
     ("flush_interval", 1),
     ("timeout", 1),

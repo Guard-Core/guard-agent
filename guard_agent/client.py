@@ -181,7 +181,7 @@ class GuardAgentHandler(IngestMixin, LoopsMixin, AgentHandlerProtocol):
                     pass
 
         await self.buffer.stop_auto_flush()
-        await self.flush_buffer()
+        await self._flush_for_stop()
         await self.transport.close()
 
         self.logger.info("Guard Agent stopped")

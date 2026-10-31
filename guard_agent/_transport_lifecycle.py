@@ -33,6 +33,7 @@ class TransportLifecycleMixin:
     requests_sent: int
     requests_failed: int
     bytes_sent: int
+    shutting_down: bool = False
 
     def _register_fork_hook(self) -> None:
         """Schedule transport reset after fork; no-op on platforms without fork."""
@@ -60,6 +61,10 @@ class TransportLifecycleMixin:
         self.requests_sent = 0
         self.requests_failed = 0
         self.bytes_sent = 0
+
+    def begin_shutdown(self) -> None:
+        """Send each remaining batch once: no retry, backoff or limiter wait."""
+        self.shutting_down = True
 
     async def _ensure_client_for_current_process(self) -> None:
         """Reinitialize the httpx client if the current pid differs from init pid."""
@@ -91,6 +96,7 @@ class TransportLifecycleMixin:
 
     async def initialize(self) -> None:
         """Initialize HTTP client."""
+        self.shutting_down = False
         if self._client and not self._client.is_closed:
             return
 

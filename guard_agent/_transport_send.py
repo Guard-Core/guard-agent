@@ -263,9 +263,12 @@ class TransportSendMixin(TransportDispatchMixin):
         if result.get("quota_exceeded") is True:
             self.batches_refused_for_quota += 1
 
+    def _post_retry_attempts(self) -> int:
+        return 0 if self.shutting_down else self.config.retry_attempts
+
     async def _sleep_or_record_giveup(self, attempt: int, delay: float) -> bool:
         """Sleep to retry (return True) or record a final failure (return False)."""
-        if attempt < self.config.retry_attempts:
+        if attempt < self._post_retry_attempts():
             await asyncio.sleep(delay)
             return True
         self.requests_failed += 1
@@ -280,14 +283,15 @@ class TransportSendMixin(TransportDispatchMixin):
     ) -> bool:
         """Send data with retry logic and circuit breaker."""
         limiter = limiter or self.rate_limiter
-        for attempt in range(self.config.retry_attempts + 1):
+        for attempt in range(self._post_retry_attempts() + 1):
             try:
                 if not await limiter.acquire():
                     retry_after = limiter.get_retry_after()
                     self.logger.warning(
                         f"Rate limit exceeded, waiting {retry_after:.1f}s"
                     )
-                    await asyncio.sleep(retry_after)
+                    if not self.shutting_down:
+                        await asyncio.sleep(retry_after)
                     continue
 
                 result = await self.circuit_breaker.call(

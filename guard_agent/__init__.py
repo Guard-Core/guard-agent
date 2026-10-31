@@ -9,6 +9,7 @@ management platform.
 
 import logging
 
+from guard_agent._json_types import JsonValue
 from guard_agent._version import __version__
 from guard_agent.buffer import EventBuffer
 from guard_agent.client import GuardAgentHandler, SyncGuardAgentHandler, guard_agent
@@ -57,6 +58,7 @@ __all__ = [
     "HTTPTransport",
     "AgentHandlerProtocol",
     "TransportProtocol",
+    "JsonValue",
     "BufferProtocol",
     "RedisHandlerProtocol",
     "SyncRedisHandlerProtocol",

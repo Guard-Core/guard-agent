@@ -258,6 +258,7 @@ await agent.initialize_redis(redis_handler)
 Implement custom transport for specialized backends:
 
 ```python
+from guard_agent import JsonValue
 from guard_agent.protocols import TransportProtocol
 from guard_agent.models import SecurityEvent, SecurityMetric, AgentStatus, DynamicRules
 
@@ -278,8 +279,9 @@ class CustomTransport(TransportProtocol):
         # Your custom implementation
         return True
 
-    def get_stats(self) -> dict[str, object]:
-        # agent.get_stats() reads the transport's stats through this method
+    def get_stats(self) -> dict[str, JsonValue]:
+        # agent.get_stats() reads the transport's stats through this method, and
+        # the agent reads "circuit_breaker_state" ("OPEN" marks it degraded)
         return {"circuit_breaker_state": "CLOSED"}
 
 # Use custom transport

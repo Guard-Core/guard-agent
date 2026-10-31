@@ -1,5 +1,6 @@
 from typing import Protocol, runtime_checkable
 
+from guard_agent._json_types import JsonValue
 from guard_agent.models import AgentStatus, DynamicRules, SecurityEvent, SecurityMetric
 
 
@@ -118,6 +119,15 @@ class TransportProtocol(Protocol):
 
     async def send_status(self, status: AgentStatus) -> bool:
         """Report agent health/status; return ``True`` only if accepted."""
+        ...
+
+    def get_stats(self) -> dict[str, JsonValue]:
+        """Return the transport's statistics for ``agent.get_stats()``.
+
+        The agent reads ``circuit_breaker_state`` from this mapping (``"OPEN"``
+        marks the agent degraded and fails its health check), so a transport
+        without a circuit breaker reports ``"CLOSED"``.
+        """
         ...
 
 

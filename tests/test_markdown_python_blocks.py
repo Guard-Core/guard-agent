@@ -65,6 +65,22 @@ config = SecurityConfig(
 security_config = config
 
 
+class _Application:
+    # Any framework app: every route or hook decorator returns the function
+
+    def __getattr__(self, name):
+        def factory(*args, **kwargs):
+            def decorator(function):
+                return function
+
+            return decorator
+
+        return factory
+
+
+app = _Application()
+
+
 def _teardown():
     GuardAgentHandler._instance = None
 """

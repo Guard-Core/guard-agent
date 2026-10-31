@@ -278,9 +278,13 @@ class CustomTransport(TransportProtocol):
         # Your custom implementation
         return True
 
+    def get_stats(self) -> dict[str, object]:
+        # agent.get_stats() reads the transport's stats through this method
+        return {"circuit_breaker_state": "CLOSED"}
+
 # Use custom transport
-agent = guard_agent(config)
-agent.transport = CustomTransport()
+custom_agent = guard_agent(config)
+custom_agent.transport = CustomTransport()
 ```
 
 ___

@@ -254,7 +254,7 @@ guard = SecurityDecorator(security_config)
 
 app = FastAPI()
 app.add_middleware(SecurityMiddleware, config=security_config)
-SecurityMiddleware.configure_cors(app, security_config)
+# CORS is configured through SecurityConfig (enable_cors and the cors_* fields), there is no configure_cors()
 app.state.guard_decorator = guard
 
 

@@ -36,7 +36,7 @@ Only do this in a process with no adapter enabling the agent through `SecurityCo
 from guard_agent import AgentConfig, guard_agent
 
 config = AgentConfig(
-    api_key="sk-...",
+    api_key="sk-your-api-key",
     endpoint="https://api.guard-core.com",
     project_id="my-project",
 )

@@ -45,6 +45,10 @@ Behavior changes since v3.2.4
 - **`SyncRedisHandlerProtocol`**, exported from `guard_agent`. `SyncGuardAgentHandler` now drives the sync engine's Redis handler without awaiting it.
 - **Python 3.15 support** (`requires-python` is now `>=3.10,<3.16`).
 
+### Fixed
+
+- **Every shipped Markdown example and stated default matches the 5.0.0 API, and a test keeps it true.** `tests/test_markdown_python_blocks.py` parses every Python block of the README, `docs/` and the packaged skill file, runs the blocks of each file one after another in a sandbox with no network (under one running event loop for a page that awaits), checks every guard-agent and guard-core import, call, keyword and attribute against the installed objects, compares every default a table or bullet states with `AgentConfig`, and checks the signature and model listings. It failed on the old pages, and the pages now show what the agent accepts: an `api_key` placeholder of at least 10 characters (`AgentConfig` refuses `"sk-..."`), no `SecurityMiddleware.configure_cors` (CORS is configured through `SecurityConfig`), a `CustomTransport` example with the `get_stats()` that `agent.get_stats()` calls on the transport (the custom transport no longer replaces the transport that the circuit breaker example reads), the FastAPI `lifespan` hook in place of the deprecated `@app.on_event`, a geo source for `block_countries`, and Python 3.10 to 3.15 in the contributing guide.
+
 ### If you stay on guard-core 4.x
 
 Guard-agent 4.0.0 has no guard-core runtime requirement, so a guard-core 4.x install keeps working and takes these changes from the agent alone.

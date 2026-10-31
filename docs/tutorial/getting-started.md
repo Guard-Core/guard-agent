@@ -186,6 +186,8 @@ config = SecurityConfig(
     enable_agent=True,
     agent_api_key="your-api-key",
     agent_project_id="your-project-id",
+    # block_countries needs a geo source
+    ipinfo_token="your_ipinfo_token_here",
     # ... other settings
 )
 
@@ -346,6 +348,9 @@ except Exception as e:
 For scenarios requiring custom business logic events beyond standard security violations, with no FastAPI Guard middleware enabling the agent in the same process. Do not combine this with the `enable_agent=True` `SecurityConfig` pattern shown earlier in this guide. `guard_agent()` dispatches to `SyncGuardAgentHandler` from sync module-load context but to `GuardAgentHandler` from the middleware's async init, so the two are separate singletons and only the middleware's instance receives traffic:
 
 ```python
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
 from guard_agent import guard_agent, AgentConfig, SecurityEvent
 from guard_agent.utils import get_current_timestamp
 
@@ -357,13 +362,14 @@ config = AgentConfig(
 agent = guard_agent(config)
 
 # Manually start/stop if not using FastAPI Guard
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await agent.start()
-
-@app.on_event("shutdown")
-async def shutdown():
+    yield
     await agent.stop()
+
+
+app = FastAPI(lifespan=lifespan)
 
 # Send custom events
 @app.post("/custom-action")

@@ -4,8 +4,8 @@
 
 `EventBuffer` holds two `collections.deque` buffers, each with `maxlen=config.buffer_size`:
 
-* `event_buffer` — `SecurityEvent` instances
-* `metric_buffer` — `SecurityMetric` instances
+* `event_buffer` - `SecurityEvent` instances
+* `metric_buffer` - `SecurityMetric` instances
 
 A `deque(maxlen=...)` silently evicts the oldest entry when full. The overflow policy gates whether that happens.
 

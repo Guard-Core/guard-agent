@@ -66,7 +66,7 @@ make stop
 Testing Infrastructure
 ----------------------
 
-The project maintains compatibility across Python 3.10, 3.11, 3.12, 3.13, and 3.14. Our containerized testing infrastructure ensures consistency across environments:
+The project maintains compatibility across Python 3.10, 3.11, 3.12, 3.13, 3.14, and 3.15. Our containerized testing infrastructure ensures consistency across environments:
 
 ```bash
 # Run tests with the default Python version (3.10)

@@ -84,6 +84,44 @@ app = _Application()
 def _teardown():
     GuardAgentHandler._instance = None
 """
+ALT_PRELUDE = """
+from typing import *
+import dataclasses, json, logging, re, time
+from datetime import datetime, timedelta
+from pathlib import Path
+from guard_agent import *
+from guard_core import SecurityConfig
+
+config = SecurityConfig(
+    enable_agent=True,
+    agent_api_key="test-api-key",
+    agent_project_id="test-project",
+    ipinfo_token="test-token",
+    behavior_scan_response_body=True,
+)
+security_config = config
+
+
+class _Application:
+    # Any framework app: every route or hook decorator returns the function
+
+    def __getattr__(self, name):
+        def factory(*args, **kwargs):
+            def decorator(function):
+                return function
+
+            return decorator
+
+        return factory
+
+
+app = _Application()
+
+
+def _teardown():
+    GuardAgentHandler._instance = None
+"""
+PRELUDE_PREFIXES = ("",)
 
 
 def _markdown_files() -> list[Path]:
@@ -523,11 +561,12 @@ def test_the_shipped_markdown_is_found() -> None:
     assert sum(len(_python_blocks(path)) for path in MARKDOWN_FILES) > 50
 
 
+@pytest.mark.usefixtures("sandbox")
 @pytest.mark.parametrize(
     "path", MARKDOWN_FILES, ids=lambda path: path.relative_to(ROOT).as_posix()
 )
 def test_every_python_block_parses_runs_and_matches_the_api(
-    path: Path, sandbox: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     name = path.relative_to(ROOT).as_posix()
     monkeypatch.chdir(tmp_path)
@@ -547,7 +586,8 @@ def test_every_python_block_parses_runs_and_matches_the_api(
         warnings.simplefilter("error")
         # A relative import in a page fragment has no package to resolve against
         warnings.simplefilter("ignore", ImportWarning)
-        exec(compile(PRELUDE, "prelude", "exec"), namespace)
+        prelude = PRELUDE if name.startswith(PRELUDE_PREFIXES) else ALT_PRELUDE
+        exec(compile(prelude, "prelude", "exec"), namespace)
         for line, body in blocks:
             label = f"{name}:{line}"
             try:

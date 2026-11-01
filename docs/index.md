@@ -263,6 +263,14 @@ from guard_agent.protocols import TransportProtocol
 from guard_agent.models import SecurityEvent, SecurityMetric, AgentStatus, DynamicRules
 
 class CustomTransport(TransportProtocol):
+    async def initialize(self) -> None:
+        # agent.start() awaits this: open your connections here
+        return None
+
+    async def close(self) -> None:
+        # agent.stop() awaits this last: release your connections here
+        return None
+
     async def send_events(self, events: list[SecurityEvent]) -> bool:
         # Your custom implementation
         return True

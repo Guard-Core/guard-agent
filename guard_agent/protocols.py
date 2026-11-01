@@ -105,6 +105,14 @@ class TransportProtocol(Protocol):
     than raising into the flush loop.
     """
 
+    async def initialize(self) -> None:
+        """Open the connections the transport needs. ``agent.start()`` awaits it."""
+        ...
+
+    async def close(self) -> None:
+        """Release the transport's connections. ``agent.stop()`` awaits it last."""
+        ...
+
     async def send_events(self, events: list[SecurityEvent]) -> bool:
         """Deliver a batch of events; return ``True`` only if accepted."""
         ...
@@ -145,6 +153,37 @@ class BufferProtocol(Protocol):
     ``flush_*_with_keys`` also return the backing keys to confirm or requeue
     once the send result is known.
     """
+
+    redis_handler: RedisHandlerProtocol | None
+    instance_id: str
+
+    async def initialize_redis(self, redis_handler: RedisHandlerProtocol) -> None:
+        """Attach the shared Redis backend; ``redis_handler`` then holds it."""
+        ...
+
+    async def list_persisted_instances(self) -> dict[str, dict[str, int]]:
+        """Count the persisted items of every other buffer instance, per id."""
+        ...
+
+    async def recover_orphaned_instance(self, instance_id: str) -> tuple[int, int]:
+        """Adopt a dead instance's persisted items; return ``(events, metrics)``."""
+        ...
+
+    async def start_auto_flush(self) -> None:
+        """Start the interval flush. ``agent.start()`` awaits it."""
+        ...
+
+    async def stop_auto_flush(self) -> None:
+        """Stop the interval flush and wait for in-flight work. ``agent.stop()``
+        awaits it before its last flush."""
+        ...
+
+    def get_stats(self) -> dict[str, JsonValue]:
+        """Return the buffer's statistics for ``agent.get_stats()`` and the status.
+
+        The status reads ``last_flush_time`` from this mapping (``None`` before
+        the first flush)."""
+        ...
 
     async def add_event(self, event: SecurityEvent) -> None:
         """Append an event to the buffer."""

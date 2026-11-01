@@ -24,11 +24,17 @@ async def _no_rules(*args: object) -> None:
     return None
 
 
+async def _nothing_to_do(*args: object) -> None:
+    return None
+
+
 def _closed_breaker_stats(self: object) -> dict[str, JsonValue]:
     return {"circuit_breaker_state": "CLOSED", "requests_sent": 0}
 
 
 _IMPLEMENTATIONS: dict[str, Callable[..., Coroutine[None, None, object] | object]] = {
+    "initialize": _nothing_to_do,
+    "close": _nothing_to_do,
     "send_events": _accepted,
     "send_metrics": _accepted,
     "send_status": _accepted,

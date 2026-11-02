@@ -11,7 +11,17 @@ on:
   workflow_dispatch:
 
 jobs:
+  cve-scan:
+    # The release never runs a weaker gate than a pull request (spec 14.3b); on a release event the SBOM is attached to the release.
+    permissions:
+      contents: write # attach the SBOM to the release
+      security-events: write # SARIF
+    uses: Guard-Core/.github/.github/workflows/cve-scan.yml@f993c869090ce2d5b9cfaebba93c318a86838456 # cve-scan (merged commit)
+    with:
+      tools_ref: f993c869090ce2d5b9cfaebba93c318a86838456
+      
   publish-shim:
+    needs: cve-scan
     runs-on: ubuntu-latest
     env:
       UV_PYTHON: '3.10'
@@ -23,17 +33,19 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           # Packaging only; the release gate is the CI matrix.
           python-version: '3.10'
 
       - name: Install build tooling
         run: |
-          pip install uv
+          pip install uv==0.13.4
 
       - name: Build shim package
         working-directory: shim
@@ -41,4 +53,4 @@ jobs:
           uv build
 
       - name: Publish package
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3

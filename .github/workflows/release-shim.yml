@@ -16,9 +16,9 @@ jobs:
     permissions:
       contents: write # attach the SBOM to the release
       security-events: write # SARIF
-    uses: Guard-Core/.github/.github/workflows/cve-scan.yml@f993c869090ce2d5b9cfaebba93c318a86838456 # cve-scan (merged commit)
+    uses: Guard-Core/.github/.github/workflows/cve-scan.yml@b3f52dbfccdfff9395efbc0c05f558610ca97546 # cve-scan (merged commit)
     with:
-      tools_ref: f993c869090ce2d5b9cfaebba93c318a86838456
+      tools_ref: b3f52dbfccdfff9395efbc0c05f558610ca97546
       
   publish-shim:
     needs: cve-scan

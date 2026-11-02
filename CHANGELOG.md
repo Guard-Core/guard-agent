@@ -6,6 +6,8 @@ ___
 Unreleased
 ----------
 
+- **Fixed** - **Every shipped dependency declares a lower bound with no known advisory (LEDGER 6.510).** The base install declares `cryptography>=50.0.0` (the first release with no advisory), `httpx>=0.27.0` and `pydantic>=2.12.0`, and the `redis` extra `redis>=5.0.1` (none had a lower bound). The suite passes with every direct dependency at its floor on Python 3.10 and 3.11, and the CVE gate scans these floors with no open advisory. An install pinned below `cryptography` 50.0.0 must move up to it. `semgrep` leaves the `dev` extra and `make semgrep` runs it from its own isolated tool environment (`uvx --from 'semgrep>=1.100,<2' semgrep`), so its `mcp` and `opentelemetry-api` pins no longer enter the lock and the five suppressions for them are gone.
+
 Behavior changes since v3.2.4
 -----------------------------
 

@@ -24,9 +24,9 @@ classifiers = [
     "Topic :: System :: Monitoring",
 ]
 dependencies = [
-    "cryptography",
-    "httpx",
-    "pydantic",
+    "cryptography>=50.0.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.12.0",
     "typing-extensions>=4.10.0",
 ]
 
@@ -63,10 +63,6 @@ dev = [
     "pytest-mock",
     "radon",
     "ruff",
-    # Floor + cap so uv's fresh (untracked-lockfile) resolution cannot walk
-    # semgrep down to the ancient 0.86.3 sdist, which fails to build without a
-    # system semgrep-core binary (fastapi's pins trigger that backtracking).
-    "semgrep>=1.100,<2",
     "tornado",
     "tornadoapi-guard>=2.0.0",
     "django-stubs",
@@ -76,7 +72,7 @@ dev = [
     "xenon",
 ]
 redis = [
-    "redis",
+    "redis>=5.0.1",
 ]
 
 [dependency-groups]
@@ -350,7 +346,6 @@ per_rule_ignores = { "DEP002" = [
     "radon",
     "redis",
     "ruff",
-    "semgrep",
     "tornado",
     "tornadoapi-guard",
     "django-stubs",

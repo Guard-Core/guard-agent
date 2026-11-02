@@ -127,7 +127,7 @@ deptry:
 semgrep:
 	@echo "Running Semgrep static analysis..."
 	@echo ''
-	@uv run semgrep --config=auto --no-git-ignore guard_agent
+	@uvx --from 'semgrep>=1.100,<2' semgrep --config=auto --no-git-ignore guard_agent
 	@find . | grep -E "(__pycache__|\.pyc|\.pyo|\.pytest_cache|\.ruff_cache|\.mypy_cache)" | xargs rm -rf
 
 

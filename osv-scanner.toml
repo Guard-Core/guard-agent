@@ -1,0 +1,43 @@
+# Per-advisory suppressions read by the CVE gate (.github/workflows/cve-scan.yml, Guard-Core/.github cve-scan/cve_scan.py).
+# Every entry names one advisory, states why it does not reach users and carries an ignoreUntil date. An expired entry fails the gate,
+# an entry that matches nothing fails the gate, and an OSV MAL-* entry can never be listed. Delete the entry when the blocker is gone.
+
+[[IgnoredVulns]]
+id = "CVE-2026-59951"
+ignoreUntil = 2026-12-15
+reason = "mcp 1.29.0 is in the lock only through semgrep (dependents chain from uv.lock: mcp <- semgrep <- guard-agent[dev]), the dev-only static analyzer; it is in no runtime dependency, no shipped extra and not in the wheel. The fixed mcp 1.30.0 cannot be locked because semgrep 1.181.0 pins the 1.x line it was built against (an upgrade of mcp alone downgrades unrelated dev packages). Remove when a semgrep release accepts mcp >= 1.30.0."
+
+[[IgnoredVulns]]
+id = "CVE-2026-116685"
+ignoreUntil = 2026-12-15
+reason = "mcp 1.29.0 is in the lock only through semgrep (dependents chain from uv.lock: mcp <- semgrep <- guard-agent[dev]), the dev-only static analyzer; it is in no runtime dependency, no shipped extra and not in the wheel. The fixed mcp 1.30.0 cannot be locked because semgrep 1.181.0 pins the 1.x line it was built against (an upgrade of mcp alone downgrades unrelated dev packages). Remove when a semgrep release accepts mcp >= 1.30.0."
+
+[[IgnoredVulns]]
+id = "CVE-2026-116686"
+ignoreUntil = 2026-12-15
+reason = "mcp 1.29.0 is in the lock only through semgrep (dependents chain from uv.lock: mcp <- semgrep <- guard-agent[dev]), the dev-only static analyzer; it is in no runtime dependency, no shipped extra and not in the wheel. The fixed mcp 1.30.0 cannot be locked because semgrep 1.181.0 pins the 1.x line it was built against (an upgrade of mcp alone downgrades unrelated dev packages). Remove when a semgrep release accepts mcp >= 1.30.0."
+
+[[IgnoredVulns]]
+id = "CVE-2026-116684"
+ignoreUntil = 2026-12-15
+reason = "mcp 1.29.0 is in the lock only through semgrep (dependents chain from uv.lock: mcp <- semgrep <- guard-agent[dev]), the dev-only static analyzer; it is in no runtime dependency, no shipped extra and not in the wheel. The fixed mcp 1.30.0 cannot be locked because semgrep 1.181.0 pins the 1.x line it was built against (an upgrade of mcp alone downgrades unrelated dev packages). Remove when a semgrep release accepts mcp >= 1.30.0."
+
+[[IgnoredVulns]]
+id = "CVE-2026-114603"
+ignoreUntil = 2026-12-15
+reason = "opentelemetry-api 1.37.0 is in the lock only through semgrep and its opentelemetry instrumentation packages (dependents chain from uv.lock: opentelemetry-api <- semgrep <- guard-agent[dev]), the dev-only static analyzer; it is in no runtime dependency, no shipped extra and not in the wheel. The fixed 1.45.1 is excluded by semgrep's pin (opentelemetry-api<1.38). Remove when a semgrep release accepts opentelemetry-api >= 1.45.1."
+
+[[IgnoredVulns]]
+id = "CVE-2026-116577"
+ignoreUntil = 2026-12-15
+reason = "tornado 6.5.10 (a dev dependency of the examples and tests) is the Python 3.10 fork of the lock: the fixed tornado 6.6 requires Python >= 3.11 and guard-agent declares >= 3.10, so no fixed release exists for 3.10 (the lock resolves 6.6 on 3.11 and later). Decide at the next release whether 3.10 stays supported; remove when it is dropped."
+
+[[IgnoredVulns]]
+id = "CVE-2026-115927"
+ignoreUntil = 2026-12-15
+reason = "tornado 6.5.10 (a dev dependency of the examples and tests) is the Python 3.10 fork of the lock: the fixed tornado 6.6 requires Python >= 3.11 and guard-agent declares >= 3.10, so no fixed release exists for 3.10 (the lock resolves 6.6 on 3.11 and later). Decide at the next release whether 3.10 stays supported; remove when it is dropped."
+
+[[IgnoredVulns]]
+id = "CVE-2026-116578"
+ignoreUntil = 2026-12-15
+reason = "tornado 6.5.10 (a dev dependency of the examples and tests) is the Python 3.10 fork of the lock: the fixed tornado 6.6 requires Python >= 3.11 and guard-agent declares >= 3.10, so no fixed release exists for 3.10 (the lock resolves 6.6 on 3.11 and later). Decide at the next release whether 3.10 stays supported; remove when it is dropped."

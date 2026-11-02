@@ -10,17 +10,25 @@ name: Publish legacy shim to PyPI
 on:
   workflow_dispatch:
 
+permissions: {}
+
+concurrency:
+  group: release-shim-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   cve-scan:
+    name: cve-scan
     # The release never runs a weaker gate than a pull request (spec 14.3b); on a release event the SBOM is attached to the release.
     permissions:
       contents: write # attach the SBOM to the release
       security-events: write # SARIF
-    uses: Guard-Core/.github/.github/workflows/cve-scan.yml@b3f52dbfccdfff9395efbc0c05f558610ca97546 # cve-scan (merged commit)
+    uses: Guard-Core/.github/.github/workflows/cve-scan.yml@b77067336bbd96d7b8244ca425de197bdcf0001c # cve-scan (merged commit)
     with:
-      tools_ref: b3f52dbfccdfff9395efbc0c05f558610ca97546
+      tools_ref: b77067336bbd96d7b8244ca425de197bdcf0001c
       
   publish-shim:
+    name: publish-shim
     needs: cve-scan
     runs-on: ubuntu-latest
     env:
@@ -28,8 +36,8 @@ jobs:
       UV_PYTHON_DOWNLOADS: never
     environment: pypi
     permissions:
-      id-token: write
-      contents: read
+      id-token: write # trusted publishing: the registry login uses the GitHub OIDC token
+      contents: read # check out the repository
 
     steps:
       - name: Checkout code

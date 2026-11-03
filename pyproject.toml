@@ -109,6 +109,7 @@ exclude = [
     "Dockerfile",
     "Makefile",
     "mkdocs.yml",
+    "tools/",
     "tests/",
     "docs/",
     "examples/",

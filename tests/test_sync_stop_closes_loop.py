@@ -118,3 +118,19 @@ def test_a_handler_that_was_replaced_does_not_release_its_successor(
         assert GuardAgentHandler._instance is second._inner
     finally:
         second.stop()
+
+
+def test_a_call_on_a_stopped_handler_raises_and_leaves_no_coroutine_unawaited(
+    agent_config: AgentConfig, recwarn: pytest.WarningsRecorder
+) -> None:
+    handler = SyncGuardAgentHandler(agent_config)
+    handler.start()
+    handler.stop()
+
+    with pytest.raises(RuntimeError):
+        handler.send_event(
+            SecurityEvent(timestamp=datetime.now(timezone.utc), event_type="ip_banned")
+        )
+    gc.collect()
+
+    assert not [w for w in recwarn if "never awaited" in str(w.message)]

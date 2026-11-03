@@ -53,6 +53,7 @@ class TestPerformanceImpact:
             enable_agent=True,
             enable_redis=False,
             agent_api_key="test-key-api-key-1",
+            agent_endpoint="http://127.0.0.1:9",
             agent_project_id="test-project",
             exclude_paths=["/test"],
             passive_mode=True,
@@ -133,6 +134,7 @@ class TestPerformanceImpact:
             whitelist_access_only=False,
             enable_agent=enable_agent,
             agent_api_key="test-api-key-0123456789" if enable_agent else None,
+            agent_endpoint="http://127.0.0.1:9",
             agent_project_id="test-project" if enable_agent else None,
         )
         app.add_middleware(SecurityMiddleware, config=config)

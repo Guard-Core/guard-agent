@@ -18,6 +18,7 @@ settings.GUARD_SECURITY_CONFIG = SecurityConfig(
     enable_agent=True,
     agent_api_key=API_KEY,
     agent_project_id=PROJECT_ID,
+    agent_endpoint="http://127.0.0.1:9",
     passive_mode=True,
     enable_redis=False,
     ban_on_hostile_signals=False,

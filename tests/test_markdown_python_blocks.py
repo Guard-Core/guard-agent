@@ -31,6 +31,7 @@ from guard_core.exceptions import GuardRedisError
 from pydantic.fields import FieldInfo
 
 from guard_agent.models import AgentConfig as ConfigModel
+from tests.agent_threads import stop_every_running_sync_agent
 
 ROOT = Path(__file__).resolve().parents[1]
 GUARD_ROOTS = ("guard_core", "guard_agent", "guard_agent", "guardagent")
@@ -559,6 +560,12 @@ def test_the_shipped_markdown_is_found() -> None:
     assert any(name.startswith("docs/") for name in names)
     assert any("/.agents/skills/" in name for name in names)
     assert sum(len(_python_blocks(path)) for path in MARKDOWN_FILES) > 50
+
+
+@pytest.fixture(autouse=True)
+def stop_the_agents_a_snippet_started() -> Iterator[None]:
+    yield
+    stop_every_running_sync_agent()
 
 
 @pytest.mark.usefixtures("sandbox")

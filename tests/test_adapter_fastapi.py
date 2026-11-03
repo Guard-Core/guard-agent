@@ -29,6 +29,7 @@ class TestFastAPIAdapterIntegration:
             enable_agent=True,
             enable_redis=False,
             agent_api_key=self.API_KEY,
+            agent_endpoint="http://127.0.0.1:9",
             agent_project_id=self.PROJECT_ID,
             passive_mode=True,
             ban_on_hostile_signals=False,
@@ -48,6 +49,7 @@ class TestFastAPIAdapterIntegration:
         config = SecurityConfig(
             enable_agent=True,
             agent_api_key=self.API_KEY,
+            agent_endpoint="http://127.0.0.1:9",
             agent_project_id=self.PROJECT_ID,
             enable_redis=False,
             ban_on_hostile_signals=False,

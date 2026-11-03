@@ -23,16 +23,87 @@ if not settings.configured:
     )
     django.setup()
 
+import ipaddress
+import socket
+import threading
 from collections.abc import Iterator
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from guard_agent.buffer import EventBuffer
 from guard_agent.client import GuardAgentHandler
 from guard_agent.models import AgentConfig, SecurityEvent, SecurityMetric
+from tests.agent_threads import stop_every_running_sync_agent
+
+_NETWORK_VIOLATIONS: list[str] = []
+_ALL_VIOLATIONS: list[str] = []
+_real_connect = socket.socket.connect
+_real_connect_ex = socket.socket.connect_ex
+_current_test: list[str] = ["<outside a test>"]
+
+
+def _is_loopback(address: object) -> bool:
+    if not isinstance(address, tuple):
+        return True
+    host = str(address[0])
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host.split("%")[0]).is_loopback
+    except ValueError:
+        return False
+
+
+def _refuse_outside_loopback(self: socket.socket, address: object) -> None:
+    if not _is_loopback(address):
+        _NETWORK_VIOLATIONS.append(
+            f"{address!r} from {_current_test[0]} on {threading.current_thread().name}"
+        )
+        raise OSError(f"tests may not connect outside loopback: {address!r}")
+
+
+def _guarded_connect(self: socket.socket, address: Any) -> None:
+    _refuse_outside_loopback(self, address)
+    _real_connect(self, address)
+
+
+def _guarded_connect_ex(self: socket.socket, address: Any) -> int:
+    _refuse_outside_loopback(self, address)
+    return _real_connect_ex(self, address)
+
+
+@pytest.fixture(autouse=True, scope="session")
+def refuse_sockets_outside_loopback() -> Iterator[None]:
+    with (
+        patch.object(socket.socket, "connect", _guarded_connect),
+        patch.object(socket.socket, "connect_ex", _guarded_connect_ex),
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def no_network_outside_loopback(request: pytest.FixtureRequest) -> Iterator[None]:
+    """Fail the test whose code (or whose leftover thread) connects off-host."""
+    _current_test[0] = request.node.nodeid
+    yield
+    found = _NETWORK_VIOLATIONS.copy()
+    _NETWORK_VIOLATIONS.clear()
+    _ALL_VIOLATIONS.extend(found)
+    assert not found, f"outbound connection outside loopback: {found}"
+
+
+@pytest.fixture(autouse=True, scope="session")
+def stop_the_sync_agents_the_suite_left_running() -> Iterator[None]:
+    yield
+    stop_every_running_sync_agent()
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    if _NETWORK_VIOLATIONS or _ALL_VIOLATIONS:
+        session.exitstatus = 1
 
 
 @pytest.fixture

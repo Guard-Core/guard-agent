@@ -224,7 +224,11 @@ class SyncGuardAgentHandler:
         loop.run_forever()
 
     def _run(self, coro: Coroutine[object, object, _T]) -> _T:
-        future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        try:
+            future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        except RuntimeError:
+            coro.close()  # a stopped handler's loop is closed: never leave it unawaited
+            raise
         return future.result()
 
     def initialize_redis(

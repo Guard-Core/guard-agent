@@ -252,6 +252,7 @@ class SecurityEvent(BaseModel):
     action_taken: str = ""
     reason: str = ""
     endpoint: str | None = None
+    route_template: str | None = None
     method: str | None = None
     status_code: int | None = None
     response_time: float | None = None

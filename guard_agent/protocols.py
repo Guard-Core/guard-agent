@@ -35,7 +35,12 @@ class RedisHandlerProtocol(Protocol):
         ...
 
     async def keys(self, pattern: str) -> list[str] | None:
-        """Return keys matching ``pattern``, or ``None`` when none can be listed."""
+        """Return keys matching ``pattern``, or ``None`` when none can be listed.
+
+        Implementations must iterate with Redis ``SCAN`` (``scan_iter``) and never
+        send the blocking ``KEYS`` command: the agent lists one instance's
+        namespace through this on a Redis shared with the application.
+        """
         ...
 
     async def initialize(self) -> None:
@@ -79,7 +84,12 @@ class SyncRedisHandlerProtocol(Protocol):
         ...
 
     def keys(self, pattern: str) -> list[str] | None:
-        """Return keys matching ``pattern``, or ``None`` when none can be listed."""
+        """Return keys matching ``pattern``, or ``None`` when none can be listed.
+
+        Implementations must iterate with Redis ``SCAN`` (``scan_iter``) and never
+        send the blocking ``KEYS`` command: the agent lists one instance's
+        namespace through this on a Redis shared with the application.
+        """
         ...
 
     def initialize(self) -> None:

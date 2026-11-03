@@ -330,6 +330,8 @@ class SecurityEvent(BaseModel):
     ip_address: str = ""
     action_taken: str = ""
     reason: str = ""
+    endpoint: str | None = None
+    route_template: str | None = None  # e.g. "/orgs/{org}/old/{year}/"
     metadata: dict[str, Any] = Field(default_factory=dict)
     # ... additional fields
 ```

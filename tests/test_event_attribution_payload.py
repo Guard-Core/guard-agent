@@ -96,3 +96,59 @@ async def test_a_duck_typed_event_keeps_the_attribution_metadata(
     [event] = _posted_events(client)
     assert event["endpoint"] == "/search"
     assert {k: event["metadata"][k] for k in ATTRIBUTION} == ATTRIBUTION
+
+
+@pytest.mark.asyncio
+async def test_the_route_template_reaches_the_wire_and_a_duck_typed_event_keeps_it(
+    agent_config: AgentConfig,
+    fresh_agent_singleton: None,
+) -> None:
+    handler = GuardAgentHandler(agent_config)
+    client = _client()
+    handler.transport._client = client
+    duck = type(
+        "SecurityEvent",
+        (),
+        {
+            "timestamp": datetime.now(timezone.utc),
+            "event_type": "pattern_detected",
+            "endpoint": "/orgs/7/old/2024/",
+            "route_template": "/orgs/{org}/old/{year}/",
+        },
+    )()
+
+    await handler.send_event(duck)
+    await handler.send_event(
+        SecurityEvent(
+            timestamp=datetime.now(timezone.utc),
+            event_type="ip_banned",
+            endpoint="/u/jane-doe",
+            route_template="/u/{slug}",
+        )
+    )
+    await handler.send_event(
+        SecurityEvent(timestamp=datetime.now(timezone.utc), event_type="ip_banned")
+    )
+    await handler.flush_buffer()
+
+    events = _posted_events(client)
+    assert [e["route_template"] for e in events] == [
+        "/orgs/{org}/old/{year}/",
+        "/u/{slug}",
+        None,
+    ]
+
+
+def test_an_older_ingest_model_accepts_the_payload_with_the_new_field() -> None:
+    class OlderSecurityEvent(SecurityEvent):
+        """What a SaaS on an agent without the field validates the payload with."""
+
+    payload = SecurityEvent(
+        timestamp=datetime.now(timezone.utc),
+        event_type="ip_banned",
+        route_template="/u/{slug}",
+    ).model_dump(mode="json")
+    legacy_payload = {k: v for k, v in payload.items() if k != "route_template"}
+
+    assert OlderSecurityEvent.model_validate(payload).route_template == "/u/{slug}"
+    assert SecurityEvent.model_validate(legacy_payload).route_template is None

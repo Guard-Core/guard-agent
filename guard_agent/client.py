@@ -213,7 +213,10 @@ class SyncGuardAgentHandler:
         self._inner = GuardAgentHandler(config)
         self._loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
         self._thread = threading.Thread(
-            target=self._run_loop, args=(self._loop,), daemon=True
+            target=self._run_loop,
+            args=(self._loop,),
+            name="guard-agent-loop",
+            daemon=True,
         )
         self._thread.start()
         self.logger = logging.getLogger(__name__)

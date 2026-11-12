@@ -25,6 +25,7 @@ if not settings.configured:
 
 import ipaddress
 import socket
+import sys
 import threading
 from collections.abc import Iterator
 from datetime import datetime, timezone
@@ -36,7 +37,10 @@ import pytest
 from guard_agent.buffer import EventBuffer
 from guard_agent.client import GuardAgentHandler
 from guard_agent.models import AgentConfig, SecurityEvent, SecurityMetric
+from tests import thread_guard
 from tests.agent_threads import stop_every_running_sync_agent
+
+thread_guard.install()
 
 _NETWORK_VIOLATIONS: list[str] = []
 _ALL_VIOLATIONS: list[str] = []
@@ -104,6 +108,10 @@ def stop_the_sync_agents_the_suite_left_running() -> Iterator[None]:
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     if _NETWORK_VIOLATIONS or _ALL_VIOLATIONS:
         session.exitstatus = 1
+    leaked = thread_guard.leaked_threads()
+    if leaked:
+        sys.stderr.write(f"\nthreads the tests left running: {leaked}\n")
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 
 @pytest.fixture

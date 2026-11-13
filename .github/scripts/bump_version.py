@@ -3,6 +3,9 @@ Version bump helper script for guard-agent.
 
 Updates the version string across all files that reference it:
 - pyproject.toml
+- shim/pyproject.toml and shim/README.md (the fastapi-guard-agent alias: its
+  guard-agent range follows the agent's major; when the range moves, the shim's
+  own version takes a minor bump)
 - guard_agent/_version.py (single source of truth imported by guard_agent.__init__
   and guard_agent.transport for User-Agent + EventBatch.agent_version)
 - .mike.yml
@@ -101,6 +104,42 @@ def update_package_version_module(version: str) -> bool:
     new_content = pattern.sub(f'{match.group(1)}"{version}"', content)
     path.write_text(new_content)
     print(f"  guard_agent/_version.py: updated to {version}")
+    return True
+
+
+def update_shim(version: str) -> bool:
+    """Point the alias shim at the new agent major and bump the shim's own version.
+
+    The shim's range is ``>=<major>.0.0,<<major+1>.0.0``. When the range already
+    matches, nothing changes; otherwise the shim takes a minor bump, because PyPI
+    rejects re-uploading a shim version.
+    """
+    major = parse_semver(version)[0]
+    new_range = f"guard-agent>={major}.0.0,<{major + 1}.0.0"
+    pyproject = PROJECT_ROOT / "shim" / "pyproject.toml"
+    readme = PROJECT_ROOT / "shim" / "README.md"
+    content = pyproject.read_text()
+    version_match = re.search(
+        r'^version = "(\d+)\.(\d+)\.(\d+)"', content, re.MULTILINE
+    )
+    range_match = re.search(r'"(guard-agent>=[^"]*)"', content)
+    if not version_match or not range_match:
+        print("  ERROR: shim/pyproject.toml has no version or guard-agent range")
+        return False
+    old_range = range_match.group(1)
+    if old_range == new_range:
+        print(f"  shim: range already {new_range}")
+        return True
+    old_shim = ".".join(version_match.groups())
+    new_shim = f"{version_match.group(1)}.{int(version_match.group(2)) + 1}.0"
+    content = content.replace(f'version = "{old_shim}"', f'version = "{new_shim}"', 1)
+    pyproject.write_text(content.replace(old_range, new_range))
+    readme.write_text(
+        readme.read_text()
+        .replace(old_range, new_range)
+        .replace(f"fastapi-guard-agent=={old_shim}", f"fastapi-guard-agent=={new_shim}")
+    )
+    print(f"  shim: range {old_range} -> {new_range}, version {old_shim} -> {new_shim}")
     return True
 
 
@@ -277,6 +316,7 @@ def main() -> int:
     updaters: list[tuple[str, Callable[[str], bool]]] = [
         ("pyproject.toml", update_pyproject_toml),
         ("guard_agent/_version.py", update_package_version_module),
+        ("shim", update_shim),
         (".mike.yml", update_mike_yml),
         ("docs/versions/versions.json", update_versions_json),
         ("changelogs", update_changelogs),

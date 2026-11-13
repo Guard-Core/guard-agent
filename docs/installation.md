@@ -3,7 +3,7 @@
 This guide provides detailed instructions for deploying Guard Agent across various environments and configurations.
 
 !!! info "Renamed from `fastapi-guard-agent` in 2.0.0"
-    The package was previously published as `fastapi-guard-agent`. The Python import path (`from guard_agent import ...`) is unchanged. Existing `pip install fastapi-guard-agent` commands still resolve via a meta-package that depends on `guard-agent>=2.0.0,<3.0.0`.
+    The package was previously published as `fastapi-guard-agent`. The Python import path (`from guard_agent import ...`) is unchanged. Existing `pip install fastapi-guard-agent` commands still resolve via a meta-package that depends on `guard-agent>=4.0.0,<5.0.0`.
 
 ## System Requirements
 

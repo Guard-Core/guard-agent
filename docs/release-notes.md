@@ -63,7 +63,7 @@ Behavior changes since v3.2.4
 
 - **Redaction reaches bytes values.** `sanitize_headers` returned a `bytes` value untouched, and the JSON encoder then wrote its `b'...'` text with every secret in it, so a request body held as bytes in `SecurityEvent.metadata` was sent unredacted. A `bytes`, `bytearray` or `memoryview` value is now decoded as UTF-8 (invalid bytes replaced, as for a bytes key) and redacted like the same text, and it comes out as text. Metric tags are `dict[str, str]`, so bytes cannot reach them (release note, behavior change).
 
-- **The `fastapi-guard-agent` alias installs guard-agent 4.x.** Version 1.4.0 of the alias depends on `guard-agent>=4.0.0,<5.0.0`; it still pinned the 3.x range, so an install through the old name resolved to an old agent. `make bump-version` now moves the alias's range to the new agent major and bumps the alias version, and a test keeps the range admitting this agent and excluding the next major. The README and docs state the new range (release note, behavior change).
+- **The `fastapi-guard-agent` alias installs guard-agent 4.x.** Version 1.4.0 of the alias depends on `guard-agent>=4.0.0,<5.0.0`. The last published alias, 1.2.0, pins `guard-agent>=2.0.0,<3.0.0` (1.3.0 was prepared but never published), so an install through the old name resolved to guard-agent 2.x. `make bump-version` now moves the alias's range to the new agent major and bumps the alias version, and a test keeps the range admitting this agent and excluding the next major. The README and docs state the new range (release note, behavior change).
 
 ### If you stay on guard-core 4.x
 
@@ -173,7 +173,7 @@ Payload signatures now cover the uncompressed body (v3.0.2)
 
 ### Changed
 
-- **The deprecated `fastapi-guard-agent` alias now resolves to guard-agent 3.x.** Its dependency pin was still `guard-agent>=2.0.0,<3.0.0` from the 2.0.0 rename, so installs through the alias kept resolving to 2.x after 3.0.0 shipped. The pin is now `>=3.0.0,<4.0.0` and the shim version is 1.3.0; the shim itself publishes via the manual `release-shim.yml` workflow after the main release.
+- **The deprecated `fastapi-guard-agent` alias now resolves to guard-agent 3.x.** Its dependency pin was still `guard-agent>=2.0.0,<3.0.0` from the 2.0.0 rename, so installs through the alias kept resolving to 2.x after 3.0.0 shipped. The pin is now `>=3.0.0,<4.0.0` and the shim version is 1.3.0 (not published); the shim itself publishes via the manual `release-shim.yml` workflow after the main release.
 
 ___
 

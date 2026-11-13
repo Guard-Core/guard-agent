@@ -41,7 +41,31 @@ def _buffer(**kw: Any) -> EventBuffer:
     )
 
 
-class GuardCoreLikeRedis:
+class _RedisDouble:
+    """Typed stand-in for RedisHandlerProtocol; subclasses override set_key."""
+
+    async def get_key(self, namespace: str, key: str) -> str | None:
+        return None
+
+    async def set_key(
+        self, namespace: str, key: str, value: str, ttl: int | None = None
+    ) -> bool | None:
+        return True
+
+    async def delete(self, namespace: str, key: str) -> int | None:
+        return 0
+
+    async def keys(self, pattern: str) -> list[str] | None:
+        return []
+
+    async def initialize(self) -> None:
+        return None
+
+    def get_connection(self) -> object:
+        return object()
+
+
+class GuardCoreLikeRedis(_RedisDouble):
     """set_key fails and, like guard-core's RedisManager, reports the failure
     through the agent's send_event before raising."""
 
@@ -49,30 +73,20 @@ class GuardCoreLikeRedis:
         self.buffer = buffer
         self.calls = 0
 
-    async def set_key(self, *args: Any, **kwargs: Any) -> bool:
+    async def set_key(
+        self, namespace: str, key: str, value: str, ttl: int | None = None
+    ) -> bool | None:
         self.calls += 1
         await self.buffer.add_event(_event("redis_error"))
         await self.buffer.add_metric(_metric())
         raise ConnectionError("redis down")
-
-    async def delete(self, *args: Any, **kwargs: Any) -> int:
-        return 0
-
-    async def get_key(self, *args: Any, **kwargs: Any) -> None:
-        return None
-
-    async def keys(self, *args: Any, **kwargs: Any) -> list[str]:
-        return []
-
-    async def initialize(self) -> None:
-        return None
 
 
 @pytest.mark.asyncio
 async def test_redis_failure_reporting_through_agent_does_not_deadlock() -> None:
     buf = _buffer()
     redis = GuardCoreLikeRedis(buf)
-    await buf.initialize_redis(redis)  # type: ignore[arg-type]
+    await buf.initialize_redis(redis)
     await asyncio.wait_for(buf.add_event(_event()), FAKE_TIMEOUT)
     await asyncio.wait_for(buf.add_metric(_metric()), FAKE_TIMEOUT)
     await asyncio.wait_for(buf.add_event(_event()), FAKE_TIMEOUT)
@@ -83,7 +97,7 @@ async def test_redis_failure_reporting_through_agent_does_not_deadlock() -> None
     assert buf._event_redis_keys == {}
 
 
-class GatedRedis:
+class GatedRedis(_RedisDouble):
     """set_key blocks on an asyncio.Event, so ordering is deterministic."""
 
     def __init__(self) -> None:
@@ -91,25 +105,18 @@ class GatedRedis:
         self.entered = asyncio.Event()
         self.store: dict[str, str] = {}
 
-    async def set_key(self, ns: str, key: str, value: str, ttl: Any = None) -> bool:
-        assert ns.startswith(AGENT_NAMESPACE_PREFIXES)
+    async def set_key(
+        self, namespace: str, key: str, value: str, ttl: int | None = None
+    ) -> bool | None:
+        assert namespace.startswith(AGENT_NAMESPACE_PREFIXES)
         self.entered.set()
         await self.release.wait()
         self.store[key] = value
         return True
 
-    async def delete(self, ns: str, key: str) -> int:
-        assert ns.startswith(AGENT_NAMESPACE_PREFIXES)
+    async def delete(self, namespace: str, key: str) -> int | None:
+        assert namespace.startswith(AGENT_NAMESPACE_PREFIXES)
         return int(self.store.pop(key, None) is not None)
-
-    async def get_key(self, *args: Any, **kwargs: Any) -> None:
-        return None
-
-    async def keys(self, *args: Any, **kwargs: Any) -> list[str]:
-        return []
-
-    async def initialize(self) -> None:
-        return None
 
 
 async def _settle(buf: EventBuffer) -> None:
@@ -120,7 +127,7 @@ async def _settle(buf: EventBuffer) -> None:
 async def test_add_returns_before_slow_redis_completes() -> None:
     buf = _buffer(buffer_size=100)
     redis = GatedRedis()
-    await buf.initialize_redis(redis)  # type: ignore[arg-type]
+    await buf.initialize_redis(redis)
     await asyncio.wait_for(
         asyncio.gather(
             *[buf.add_event(_event()) for _ in range(10)],
@@ -142,7 +149,7 @@ async def test_add_returns_before_slow_redis_completes() -> None:
 async def test_stop_drains_pending_persist() -> None:
     buf = _buffer()
     redis = GatedRedis()
-    await buf.initialize_redis(redis)  # type: ignore[arg-type]
+    await buf.initialize_redis(redis)
     await buf.start_auto_flush()
     await buf.add_event(_event())
     await buf.add_metric(_metric())
@@ -160,7 +167,7 @@ async def test_stop_drains_pending_persist() -> None:
 async def test_flush_during_persist_deletes_key_instead_of_orphaning() -> None:
     buf = _buffer()
     redis = GatedRedis()
-    await buf.initialize_redis(redis)  # type: ignore[arg-type]
+    await buf.initialize_redis(redis)
     event, metric = _event(), _metric()
     await buf.add_event(event)
     await buf.add_metric(metric)
@@ -180,7 +187,7 @@ async def test_flush_during_persist_deletes_key_instead_of_orphaning() -> None:
 async def test_requeue_during_persist_tracks_key() -> None:
     buf = _buffer()
     redis = GatedRedis()
-    await buf.initialize_redis(redis)  # type: ignore[arg-type]
+    await buf.initialize_redis(redis)
     await buf.add_event(_event())
     await asyncio.wait_for(redis.entered.wait(), FAKE_TIMEOUT)
     events, keys = await buf.flush_events_with_keys()
@@ -196,10 +203,12 @@ async def test_persist_failure_is_not_tracked() -> None:
     buf = _buffer()
 
     class Failing(GatedRedis):
-        async def set_key(self, *a: Any, **k: Any) -> bool:
+        async def set_key(
+            self, namespace: str, key: str, value: str, ttl: int | None = None
+        ) -> bool | None:
             raise ConnectionError("down")
 
-    await buf.initialize_redis(Failing())  # type: ignore[arg-type]
+    await buf.initialize_redis(Failing())
     await buf.add_event(_event())
     await buf.add_metric(_metric())
     await _settle(buf)
@@ -255,7 +264,7 @@ async def test_inflight_persists_capped_and_overflow_counted(
 ) -> None:
     buf = _buffer(buffer_size=3)
     redis = GatedRedis()
-    await buf.initialize_redis(redis)  # type: ignore[arg-type]
+    await buf.initialize_redis(redis)
     for _ in range(4):
         await buf.add_event(_event())
     for _ in range(3):
@@ -279,7 +288,7 @@ async def test_item_gone_before_task_starts_is_never_written() -> None:
     buf = _buffer()
     redis = GatedRedis()
     redis.release.set()
-    await buf.initialize_redis(redis)  # type: ignore[arg-type]
+    await buf.initialize_redis(redis)
     await buf.add_event(_event())
     await buf.add_metric(_metric())
     await buf.flush_events_with_keys()
@@ -294,7 +303,7 @@ async def test_overflow_eviction_and_clear_drop_pending_persists() -> None:
     buf = _buffer(buffer_size=2)
     redis = GatedRedis()
     redis.release.set()
-    await buf.initialize_redis(redis)  # type: ignore[arg-type]
+    await buf.initialize_redis(redis)
     first = _event()
     await buf.add_event(first)
     await buf.add_event(_event())
@@ -314,7 +323,7 @@ async def test_overflow_eviction_and_clear_drop_pending_persists() -> None:
 async def test_metric_requeue_during_persist_tracks_key() -> None:
     buf = _buffer()
     redis = GatedRedis()
-    await buf.initialize_redis(redis)  # type: ignore[arg-type]
+    await buf.initialize_redis(redis)
     await buf.add_metric(_metric())
     await asyncio.wait_for(redis.entered.wait(), FAKE_TIMEOUT)
     metrics, keys = await buf.flush_metrics_with_keys()
@@ -329,10 +338,12 @@ async def test_failed_persists_leave_no_pending_ids() -> None:
     buf = _buffer()
 
     class Failing(GatedRedis):
-        async def set_key(self, *a: Any, **k: Any) -> bool:
+        async def set_key(
+            self, namespace: str, key: str, value: str, ttl: int | None = None
+        ) -> bool | None:
             raise ConnectionError("down")
 
-    await buf.initialize_redis(Failing())  # type: ignore[arg-type]
+    await buf.initialize_redis(Failing())
     for _ in range(3):
         await buf.add_event(_event())
         await buf.add_metric(_metric())

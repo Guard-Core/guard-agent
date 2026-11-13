@@ -52,7 +52,7 @@ jobs:
         - [ ] `make test` (or `make local-test`) - full test suite passes with 100% coverage
         - [ ] `make security` - `bandit`, `safety`, and `pip-audit` all clean
         - [ ] `make quality` - `radon` and `xenon` complexity thresholds respected
-        - [ ] No `# noqa` / `# type: ignore` shortcuts; pre-existing violations in touched files are fixed
+        - [ ] No lint or type-check suppression comments; pre-existing violations in touched files are fixed
         - [ ] Added an entry under `## Unreleased` in [CHANGELOG.md](../blob/master/CHANGELOG.md)
         - [ ] If you touched a public API (client, transport, models), updated the relevant page under `docs/`
         - [ ] No real API tokens or SaaS endpoints committed in fixtures/examples

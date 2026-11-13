@@ -215,7 +215,7 @@ async def main() -> None:
     print("=" * 40)
 
     # Show recommended integration first
-    app = create_fastapi_app_with_agent()  # noqa: F841
+    create_fastapi_app_with_agent()
 
     # Show complete integration benefits
     await integrated_app_example()

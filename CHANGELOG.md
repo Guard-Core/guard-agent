@@ -105,31 +105,13 @@ Metadata release: PyPI project URLs, the docs canonical domain, and all reposito
 
 ___
 
-v3.2.1 (2026-10-06)
+v3.2.1 (2026-10-07)
 -------------------
 
 The lockstep release: version alignment with the engines at 4.3.1 (v3.2.1)
----------------------------------------------------------------------------
+--------------------------------------------------------------------------
 
 No agent behavior changes. Shipped so the agents family moves in lockstep with the engines at 4.3.1 while guard-agent-ts carries the js/polynomial-redos fix (linear `stripTrailingSlashes` replacing anchored quantifier regexes in `config.ts`/`transport.ts`, CodeQL HIGH).
-
-___
-
-The parity release: agent feature surface locked across all four language ports (v3.1.0)
-------------------------------------------------------------------------------------------
-
-### About this release
-
-- **This is the parity release for the Guard agent family.** The 3.1.0 wave (Python, TypeScript, Go, PHP, Rust) ships the same feature surface in every port. Note: the earlier 4.1.0 family tags were a version-accuracy error and were yanked/unpublished; 3.1.0 is the correct version for this train.
-- The conformance corpus (219 cases, spec 4.1.0) validates the shared surface across the ports.
-
-### Added (3.0.2 -> 3.1.0 feature list)
-
-- **AES-256-GCM encrypted ingest.** Event batches can be encrypted end to end with an AES-256-GCM key; the server decrypts after transport-level TLS, so batch contents are opaque to intermediaries even on the wire.
-- **Sensitive-header redaction.** Authorization, Cookie, Set-Cookie, and other configured sensitive headers are redacted at ingest and again at egress, so secrets never leave the process in plaintext form.
-- **Dynamic rules.** The agent polls the guard-core server for dynamic rate-limit and ban rules on a configurable interval and enforces them locally, emitting `dynamic_rule_applied`, `dynamic_rule_updated`, and `dynamic_rule_violation` events.
-- **Local rate limiters.** Rule-driven local rate limiting with auto-ban support, usable without a Redis round trip on every event.
-- **Helpers.** Shared helpers for event construction, batching, and redaction are exported for adapter authors building custom ingest paths.
 
 ___
 
@@ -148,6 +130,27 @@ Buildable dev resolution, Slack-free CI, and an enforced 100% coverage gate (v3.
 - **CI no longer posts Slack notifications (#64).** The Slack notification steps were removed from ci.yml, code-ql.yml, docs.yml, release-shim.yml, release.yml and scheduled-lint.yml.
 - **The 100% coverage gate is now enforced in CI (#64).** The test job runs pytest with `--cov-fail-under=100`, so a coverage regression fails the build instead of only being reported; this matches the project's 100%-coverage target.
 - **github/codeql-action bumped from 4.38.1 to 4.38.2 (#63).**
+
+___
+
+v3.1.0 (2026-09-27)
+-------------------
+
+The parity release: agent feature surface locked across all four language ports (v3.1.0)
+----------------------------------------------------------------------------------------
+
+### About this release
+
+- **This is the parity release for the Guard agent family.** The 3.1.0 wave (Python, TypeScript, Go, PHP, Rust) ships the same feature surface in every port. Note: the earlier 4.1.0 family tags were a version-accuracy error and were yanked/unpublished; 3.1.0 is the correct version for this train.
+- The conformance corpus (219 cases, spec 4.1.0) validates the shared surface across the ports.
+
+### Added (3.0.2 -> 3.1.0 feature list)
+
+- **AES-256-GCM encrypted ingest.** Event batches can be encrypted end to end with an AES-256-GCM key; the server decrypts after transport-level TLS, so batch contents are opaque to intermediaries even on the wire.
+- **Sensitive-header redaction.** Authorization, Cookie, Set-Cookie, and other configured sensitive headers are redacted at ingest and again at egress, so secrets never leave the process in plaintext form.
+- **Dynamic rules.** The agent polls the guard-core server for dynamic rate-limit and ban rules on a configurable interval and enforces them locally, emitting `dynamic_rule_applied`, `dynamic_rule_updated`, and `dynamic_rule_violation` events.
+- **Local rate limiters.** Rule-driven local rate limiting with auto-ban support, usable without a Redis round trip on every event.
+- **Helpers.** Shared helpers for event construction, batching, and redaction are exported for adapter authors building custom ingest paths.
 
 ___
 
@@ -172,7 +175,7 @@ v3.0.1 (2026-09-23)
 -------------------
 
 Partial-failure warning no longer claims Redis retention without Redis (v3.0.1)
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 ### Fixed
 
@@ -180,6 +183,7 @@ Partial-failure warning no longer claims Redis retention without Redis (v3.0.1)
 
 ___
 
+v3.0.0 (2026-09-04)
 -------------------
 
 Recursive header and metadata redaction, an atomic block-policy buffer, and a maintainability split (v3.0.0)
@@ -354,7 +358,7 @@ Observable transport errors and documented Protocols (v2.7.0)
 
 ___
 
-v2.6.0 (2026-05-12)
+v2.6.0 (2026-05-14)
 -------------------
 
 Configurable rules and status loop intervals (v2.6.0)
@@ -367,7 +371,7 @@ Configurable rules and status loop intervals (v2.6.0)
 
 ___
 
-v2.5.0 (2026-05-06)
+v2.5.0 (2026-05-07)
 -------------------
 
 Install ID fingerprinting and optional HMAC payload signing (v2.5.0)
@@ -420,7 +424,7 @@ Per-event idempotency keys, configurable overflow policy, and framework-version 
 
 ___
 
-v2.3.0 (2026-04-26)
+v2.3.0 (2026-04-27)
 -------------------
 
 Production Safety (v2.3.0)
@@ -592,7 +596,7 @@ Enhancements (v0.1.0)
 
 ___
 
-v0.0.1 (2025-06-22)
+v0.0.1 (2025-06-27)
 -------------------
 
 New Features (v0.0.1)

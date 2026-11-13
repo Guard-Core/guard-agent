@@ -75,24 +75,6 @@ Guard-agent 4.0.0 has no guard-core runtime requirement, so a guard-core 4.x ins
 
 ___
 
-The parity release: agent feature surface locked across all four language ports (v3.1.0)
-------------------------------------------------------------------------------------------
-
-### About this release
-
-- **This is the parity release for the Guard agent family.** The 3.1.0 wave (Python, TypeScript, Go, PHP, Rust) ships the same feature surface in every port. Note: the earlier 4.1.0 family tags were a version-accuracy error and were yanked/unpublished; 3.1.0 is the correct version for this train.
-- The conformance corpus (219 cases, spec 4.1.0) validates the shared surface across the ports.
-
-### Added (3.0.2 -> 3.1.0 feature list)
-
-- **AES-256-GCM encrypted ingest.** Event batches can be encrypted end to end with an AES-256-GCM key; the server decrypts after transport-level TLS, so batch contents are opaque to intermediaries even on the wire.
-- **Sensitive-header redaction.** Authorization, Cookie, Set-Cookie, and other configured sensitive headers are redacted at ingest and again at egress, so secrets never leave the process in plaintext form.
-- **Dynamic rules.** The agent polls the guard-core server for dynamic rate-limit and ban rules on a configurable interval and enforces them locally, emitting `dynamic_rule_applied`, `dynamic_rule_updated`, and `dynamic_rule_violation` events.
-- **Local rate limiters.** Rule-driven local rate limiting with auto-ban support, usable without a Redis round trip on every event.
-- **Helpers.** Shared helpers for event construction, batching, and redaction are exported for adapter authors building custom ingest paths.
-
-___
-
 v3.2.4 (2026-10-15)
 -------------------
 
@@ -151,6 +133,27 @@ Buildable dev resolution, Slack-free CI, and an enforced 100% coverage gate (v3.
 
 ___
 
+v3.1.0 (2026-09-27)
+-------------------
+
+The parity release: agent feature surface locked across all four language ports (v3.1.0)
+----------------------------------------------------------------------------------------
+
+### About this release
+
+- **This is the parity release for the Guard agent family.** The 3.1.0 wave (Python, TypeScript, Go, PHP, Rust) ships the same feature surface in every port. Note: the earlier 4.1.0 family tags were a version-accuracy error and were yanked/unpublished; 3.1.0 is the correct version for this train.
+- The conformance corpus (219 cases, spec 4.1.0) validates the shared surface across the ports.
+
+### Added (3.0.2 -> 3.1.0 feature list)
+
+- **AES-256-GCM encrypted ingest.** Event batches can be encrypted end to end with an AES-256-GCM key; the server decrypts after transport-level TLS, so batch contents are opaque to intermediaries even on the wire.
+- **Sensitive-header redaction.** Authorization, Cookie, Set-Cookie, and other configured sensitive headers are redacted at ingest and again at egress, so secrets never leave the process in plaintext form.
+- **Dynamic rules.** The agent polls the guard-core server for dynamic rate-limit and ban rules on a configurable interval and enforces them locally, emitting `dynamic_rule_applied`, `dynamic_rule_updated`, and `dynamic_rule_violation` events.
+- **Local rate limiters.** Rule-driven local rate limiting with auto-ban support, usable without a Redis round trip on every event.
+- **Helpers.** Shared helpers for event construction, batching, and redaction are exported for adapter authors building custom ingest paths.
+
+___
+
 v3.0.2 (2026-09-23)
 -------------------
 
@@ -165,6 +168,18 @@ Payload signatures now cover the uncompressed body (v3.0.2)
 ### Changed
 
 - **The deprecated `fastapi-guard-agent` alias now resolves to guard-agent 3.x.** Its dependency pin was still `guard-agent>=2.0.0,<3.0.0` from the 2.0.0 rename, so installs through the alias kept resolving to 2.x after 3.0.0 shipped. The pin is now `>=3.0.0,<4.0.0` and the shim version is 1.3.0; the shim itself publishes via the manual `release-shim.yml` workflow after the main release.
+
+___
+
+v3.0.1 (2026-09-23)
+-------------------
+
+Partial-failure warning no longer claims Redis retention without Redis (v3.0.1)
+-------------------------------------------------------------------------------
+
+### Fixed
+
+- **The flush loop's partial-failure warning was misleading during incidents.** When a batch was partially rejected, the warning claimed items were "requeued in memory and retained in Redis for retry" even when Redis persistence was disabled; the true disposition without Redis is the in-memory buffer only. The warning now names the backend that actually holds the requeued items, and regression tests cover both the Redis-disabled and Redis-enabled warnings.
 
 ___
 
@@ -343,7 +358,7 @@ Observable transport errors and documented Protocols (v2.7.0)
 
 ___
 
-v2.6.0 (2026-05-12)
+v2.6.0 (2026-05-14)
 -------------------
 
 Configurable rules and status loop intervals (v2.6.0)
@@ -356,7 +371,7 @@ Configurable rules and status loop intervals (v2.6.0)
 
 ___
 
-v2.5.0 (2026-05-06)
+v2.5.0 (2026-05-07)
 -------------------
 
 Install ID fingerprinting and optional HMAC payload signing (v2.5.0)
@@ -409,7 +424,7 @@ Per-event idempotency keys, configurable overflow policy, and framework-version 
 
 ___
 
-v2.3.0 (2026-04-26)
+v2.3.0 (2026-04-27)
 -------------------
 
 Production Safety (v2.3.0)
@@ -581,7 +596,7 @@ Enhancements (v0.1.0)
 
 ___
 
-v0.0.1 (2025-06-22)
+v0.0.1 (2025-06-27)
 -------------------
 
 New Features (v0.0.1)

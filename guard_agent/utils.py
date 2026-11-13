@@ -72,7 +72,8 @@ def sanitize_headers(headers: object, sensitive_headers: list[str]) -> object:
     one this cannot safely walk, is redacted wholesale rather than raised.
     Keys are matched case-insensitively after stripping whitespace. A
     bytes key is decoded as UTF-8 (replacing invalid bytes) before the
-    match so it cannot bypass detection by stringifying to "b'...'".
+    match so it cannot bypass detection by stringifying to "b'...'", and a
+    bytes value is decoded the same way and redacted like the same text.
     """
     lowered = {_normalize_key(h) for h in sensitive_headers}
     return _sanitize_value(headers, lowered, depth=0)
@@ -108,8 +109,9 @@ def _sanitize_value_unsafe(
         return _REDACTED
     if isinstance(value, str):
         return _sanitize_string_value(value, lowered_sensitive, depth)
-    if isinstance(value, bytes):
-        return value
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        text = bytes(value).decode("utf-8", errors="replace")
+        return _sanitize_string_value(text, lowered_sensitive, depth)
     if isinstance(value, Mapping):
         return _sanitize_mapping(value, lowered_sensitive, depth)
     if _is_model_like(value):

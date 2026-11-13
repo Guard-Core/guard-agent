@@ -1,6 +1,7 @@
 import logging
 
 from guard_agent.buffer import EventBuffer
+from guard_agent.exceptions import BufferFullError
 from guard_agent.models import AgentConfig, SecurityEvent, SecurityMetric
 from guard_agent.utils import sanitize_headers
 
@@ -22,6 +23,8 @@ class IngestMixin:
             self.logger.debug(
                 f"Event buffered: {event.event_type} from {event.ip_address}"
             )
+        except BufferFullError:
+            raise
         except Exception as e:
             self.logger.error(f"Failed to buffer event: {str(e)}")
 
@@ -35,6 +38,8 @@ class IngestMixin:
             metric = self._redact_metric_tags(metric)
             await self.buffer.add_metric(metric)
             self.logger.debug(f"Metric buffered: {metric.metric_type} = {metric.value}")
+        except BufferFullError:
+            raise
         except Exception as e:
             self.logger.error(f"Failed to buffer metric: {str(e)}")
 

@@ -176,10 +176,10 @@ class TestUtils:
 
         assert at(sanitized, "x") is not None
 
-    def test_sanitize_headers_passes_bytes_through_unchanged(self) -> None:
+    def test_sanitize_headers_decodes_bytes_values_to_text(self) -> None:
         sanitized = sanitize_headers({"x": b"raw-bytes"}, ["authorization"])
 
-        assert at(sanitized, "x") == b"raw-bytes"
+        assert at(sanitized, "x") == "raw-bytes"
 
     def test_sanitize_headers_matches_bytes_key(self) -> None:
         sanitized = sanitize_headers(

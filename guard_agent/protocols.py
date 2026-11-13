@@ -309,6 +309,10 @@ class AgentHandlerProtocol(Protocol):
         """Return a snapshot of the agent's current health/status."""
         ...
 
+    def get_stats(self) -> dict[str, JsonValue]:
+        """Return the agent's counters as a JSON-shaped mapping (sync)."""
+        ...
+
     async def close(self) -> None:
         """Release all resources; the agent is unusable afterward."""
         ...

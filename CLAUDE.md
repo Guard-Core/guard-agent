@@ -5,9 +5,9 @@ Guidance for AI agents (including Claude Code) working in this repository.
 
 Guard Agent is the framework-agnostic telemetry and monitoring agent for the Guard security ecosystem. It buffers security events and metrics, flushes them to the Guard SaaS API, fetches dynamic rules, and serves `fastapi-guard`, `flaskapi-guard`, `djapi-guard`, and `tornadoapi-guard`.
 
-- **Package (PyPI)**: `guard-agent` v3.0.0
+- **Package (PyPI)**: `guard-agent` v4.0.0
 - **Import path**: `guard_agent` (unchanged across the rename)
-- **Legacy PyPI alias**: `fastapi-guard-agent==1.2.0`, a meta-package that installs `guard-agent>=2.0.0,<3.0.0`
+- **Legacy PyPI alias**: `fastapi-guard-agent==1.4.0`, a meta-package that installs `guard-agent>=4.0.0,<5.0.0`
 - **Python**: 3.10-3.15
 - **Build**: Hatchling
 - **Package Manager**: `uv`
@@ -53,7 +53,7 @@ Shim in `shim/` (legacy PyPI meta-package):
 
 | File | Purpose |
 |------|---------|
-| `shim/pyproject.toml` | `fastapi_guard_agent==1.2.0` depending only on `guard-agent>=2,<3` |
+| `shim/pyproject.toml` | `fastapi_guard_agent==1.4.0` depending only on `guard-agent>=4.0.0,<5.0.0` |
 | `shim/fastapi_guard_agent/` | Tiny alias module that emits `DeprecationWarning` on import |
 
 ## Quick Start
@@ -211,7 +211,7 @@ uv run pytest tests/test_buffer.py::test_name -v
 4. **Prefer adapter configuration** (`SecurityConfig.agent_*`) over building `AgentConfig` yourself; a second handler in the same process is a different singleton whose events never reach the dashboard
 5. **Keep `buffer_size` small** relative to the 256 KiB ingestion cap
 6. **Run tests** before committing and keep mypy strict clean
-7. **Update both distributions** (`uv build` and the `shim/` package) when the version changes; `make bump-version` handles the main package
+7. **Update both distributions** (`uv build` and the `shim/` package) when the version changes; `make bump-version` handles both: it also moves the shim's guard-agent range to the new major and bumps the shim version
 8. **Document changes** in `CHANGELOG.md` and `docs/`
 
 ## Related Projects

@@ -41,6 +41,7 @@ Behavior changes since v3.2.4
 - **`RedisHandlerProtocol.keys()` and `SyncRedisHandlerProtocol.keys()` document that an implementation iterates with SCAN and never sends KEYS.** The agent sends no Redis command itself; it calls the handler's `keys()`, which guard-core implements with `scan_iter`. Docstring only, no signature change.
 - **A call on a stopped `SyncGuardAgentHandler` closes its coroutine before raising.** `send_event`, `send_metric` and the other sync methods built the coroutine, then failed to schedule it on the closed loop and left it un-awaited (a `RuntimeWarning` at garbage collection, an error under `-W error`). They still raise `RuntimeError`.
 - **`stop()` has a bounded last flush.** The flush `stop()` runs sent every batch through the full retry and backoff loop: against a refused endpoint it took 14.6 s and against a black hole about 64 s. It now sends each batch once, without retries, backoff or limiter waits, inside an overall deadline of `AgentConfig.stop_timeout` seconds (new field, default 5.0). What is still unsent after the attempt or the deadline stays in Redis when it is configured (one WARNING names the buffer instance for `recover_orphaned_instance()`), and is counted in `events_failed` / `metrics_failed` with one WARNING otherwise.
+- **`AgentHandlerProtocol` declares `get_stats()`.** The engine's protocol declares the sync `get_stats()` and the agent's declared only the async `get_status()`; both exist on the handler and the engine calls both, so the agent's protocol now declares both. A custom handler that satisfies the protocol must provide `get_stats()` (release note, behavior change).
 
 ### Added
 
@@ -58,6 +59,11 @@ Behavior changes since v3.2.4
 - **`TransportProtocol` declares `get_stats`, so a custom transport written to the protocol works with `agent.get_stats()`.** `agent.get_stats()`, `agent.get_status()` and `agent.health_check()` read the transport's statistics (`circuit_breaker_state` is required, `"OPEN"` marks the agent degraded), but the protocol did not declare `get_stats`, so a transport that implemented every method of the protocol failed with `AttributeError: 'CustomTransport' object has no attribute 'get_stats'`. The protocol now declares `get_stats() -> dict[str, JsonValue]`, `HTTPTransport` satisfies it, `JsonValue` is exported from `guard_agent` for the annotation, and a test builds a transport from the protocol's members alone and calls `agent.get_stats()`. The `docs/index.md` example and the `get_stats` signatures of `docs/api/overview.md` match.
 
 - **Every shipped Markdown example and stated default matches the 5.0.0 API, and a test keeps it true.** `tests/test_markdown_python_blocks.py` parses every Python block of the README, `docs/` and the packaged skill file, runs the blocks of each file one after another in a sandbox with no network (under one running event loop for a page that awaits), checks every guard-agent and guard-core import, call, keyword and attribute against the installed objects, compares every default a table or bullet states with `AgentConfig`, and checks the signature and model listings. It failed on the old pages, and the pages now show what the agent accepts: an `api_key` placeholder of at least 10 characters (`AgentConfig` refuses `"sk-..."`), no `SecurityMiddleware.configure_cors` (CORS is configured through `SecurityConfig`), a `CustomTransport` example with the `get_stats()` that `agent.get_stats()` calls on the transport (the custom transport no longer replaces the transport that the circuit breaker example reads), the FastAPI `lifespan` hook in place of the deprecated `@app.on_event`, a geo source for `block_countries`, and Python 3.10 to 3.15 in the contributing guide.
+- **`buffer_overflow_policy="raise"` now reaches the caller.** `send_event` and `send_metric` caught every exception, so the `BufferFullError` the policy raises never left them and the documented policy did nothing. It now propagates from `send_event`, `send_metric` and their sync wrappers; the `drop` and `block` policies and every other failure are unchanged. Under guard-core a send never fails a request, because the engine guards every send site and logs the error, so the policy is for code that calls the agent directly (release note, behavior change).
+
+- **Redaction reaches bytes values.** `sanitize_headers` returned a `bytes` value untouched, and the JSON encoder then wrote its `b'...'` text with every secret in it, so a request body held as bytes in `SecurityEvent.metadata` was sent unredacted. A `bytes`, `bytearray` or `memoryview` value is now decoded as UTF-8 (invalid bytes replaced, as for a bytes key) and redacted like the same text, and it comes out as text. Metric tags are `dict[str, str]`, so bytes cannot reach them (release note, behavior change).
+
+- **The `fastapi-guard-agent` alias installs guard-agent 4.x.** Version 1.4.0 of the alias depends on `guard-agent>=4.0.0,<5.0.0`. The last published alias, 1.2.0, pins `guard-agent>=2.0.0,<3.0.0` (1.3.0 was prepared but never published), so an install through the old name resolved to guard-agent 2.x. `make bump-version` now moves the alias's range to the new agent major and bumps the alias version, and a test keeps the range admitting this agent and excluding the next major. The README and docs state the new range (release note, behavior change).
 
 ### If you stay on guard-core 4.x
 
@@ -72,24 +78,6 @@ Guard-agent 4.0.0 has no guard-core runtime requirement, so a guard-core 4.x ins
 - **Wrong-shape payloads raise `TypeError` and a missing Redis handler or HTTP client raises `GuardAgentError`**, where `assert` statements stood before.
 - **`SyncGuardAgentHandler.initialize_redis` accepts a blocking Redis handler** (`SyncRedisHandlerProtocol`), and the five event types `ip_ban_refused`, `ip_ban_evicted`, `behavior_bucket_evicted`, `auth_verifier_error` and `response_body_unavailable` are in `KNOWN_EVENT_TYPES`.
 - **Python 3.15 is supported** (`requires-python` is `>=3.10,<3.16`).
-
-___
-
-The parity release: agent feature surface locked across all four language ports (v3.1.0)
-------------------------------------------------------------------------------------------
-
-### About this release
-
-- **This is the parity release for the Guard agent family.** The 3.1.0 wave (Python, TypeScript, Go, PHP, Rust) ships the same feature surface in every port. Note: the earlier 4.1.0 family tags were a version-accuracy error and were yanked/unpublished; 3.1.0 is the correct version for this train.
-- The conformance corpus (219 cases, spec 4.1.0) validates the shared surface across the ports.
-
-### Added (3.0.2 -> 3.1.0 feature list)
-
-- **AES-256-GCM encrypted ingest.** Event batches can be encrypted end to end with an AES-256-GCM key; the server decrypts after transport-level TLS, so batch contents are opaque to intermediaries even on the wire.
-- **Sensitive-header redaction.** Authorization, Cookie, Set-Cookie, and other configured sensitive headers are redacted at ingest and again at egress, so secrets never leave the process in plaintext form.
-- **Dynamic rules.** The agent polls the guard-core server for dynamic rate-limit and ban rules on a configurable interval and enforces them locally, emitting `dynamic_rule_applied`, `dynamic_rule_updated`, and `dynamic_rule_violation` events.
-- **Local rate limiters.** Rule-driven local rate limiting with auto-ban support, usable without a Redis round trip on every event.
-- **Helpers.** Shared helpers for event construction, batching, and redaction are exported for adapter authors building custom ingest paths.
 
 ___
 
@@ -151,6 +139,27 @@ Buildable dev resolution, Slack-free CI, and an enforced 100% coverage gate (v3.
 
 ___
 
+v3.1.0 (2026-09-27)
+-------------------
+
+The parity release: agent feature surface locked across all four language ports (v3.1.0)
+----------------------------------------------------------------------------------------
+
+### About this release
+
+- **This is the parity release for the Guard agent family.** The 3.1.0 wave (Python, TypeScript, Go, PHP, Rust) ships the same feature surface in every port. Note: the earlier 4.1.0 family tags were a version-accuracy error and were yanked/unpublished; 3.1.0 is the correct version for this train.
+- The conformance corpus (219 cases, spec 4.1.0) validates the shared surface across the ports.
+
+### Added (3.0.2 -> 3.1.0 feature list)
+
+- **AES-256-GCM encrypted ingest.** Event batches can be encrypted end to end with an AES-256-GCM key; the server decrypts after transport-level TLS, so batch contents are opaque to intermediaries even on the wire.
+- **Sensitive-header redaction.** Authorization, Cookie, Set-Cookie, and other configured sensitive headers are redacted at ingest and again at egress, so secrets never leave the process in plaintext form.
+- **Dynamic rules.** The agent polls the guard-core server for dynamic rate-limit and ban rules on a configurable interval and enforces them locally, emitting `dynamic_rule_applied`, `dynamic_rule_updated`, and `dynamic_rule_violation` events.
+- **Local rate limiters.** Rule-driven local rate limiting with auto-ban support, usable without a Redis round trip on every event.
+- **Helpers.** Shared helpers for event construction, batching, and redaction are exported for adapter authors building custom ingest paths.
+
+___
+
 v3.0.2 (2026-09-23)
 -------------------
 
@@ -164,7 +173,19 @@ Payload signatures now cover the uncompressed body (v3.0.2)
 
 ### Changed
 
-- **The deprecated `fastapi-guard-agent` alias now resolves to guard-agent 3.x.** Its dependency pin was still `guard-agent>=2.0.0,<3.0.0` from the 2.0.0 rename, so installs through the alias kept resolving to 2.x after 3.0.0 shipped. The pin is now `>=3.0.0,<4.0.0` and the shim version is 1.3.0; the shim itself publishes via the manual `release-shim.yml` workflow after the main release.
+- **The deprecated `fastapi-guard-agent` alias now resolves to guard-agent 3.x.** Its dependency pin was still `guard-agent>=2.0.0,<3.0.0` from the 2.0.0 rename, so installs through the alias kept resolving to 2.x after 3.0.0 shipped. The pin is now `>=3.0.0,<4.0.0` and the shim version is 1.3.0 (not published); the shim itself publishes via the manual `release-shim.yml` workflow after the main release.
+
+___
+
+v3.0.1 (2026-09-23)
+-------------------
+
+Partial-failure warning no longer claims Redis retention without Redis (v3.0.1)
+-------------------------------------------------------------------------------
+
+### Fixed
+
+- **The flush loop's partial-failure warning was misleading during incidents.** When a batch was partially rejected, the warning claimed items were "requeued in memory and retained in Redis for retry" even when Redis persistence was disabled; the true disposition without Redis is the in-memory buffer only. The warning now names the backend that actually holds the requeued items, and regression tests cover both the Redis-disabled and Redis-enabled warnings.
 
 ___
 
@@ -343,7 +364,7 @@ Observable transport errors and documented Protocols (v2.7.0)
 
 ___
 
-v2.6.0 (2026-05-12)
+v2.6.0 (2026-05-14)
 -------------------
 
 Configurable rules and status loop intervals (v2.6.0)
@@ -356,7 +377,7 @@ Configurable rules and status loop intervals (v2.6.0)
 
 ___
 
-v2.5.0 (2026-05-06)
+v2.5.0 (2026-05-07)
 -------------------
 
 Install ID fingerprinting and optional HMAC payload signing (v2.5.0)
@@ -409,7 +430,7 @@ Per-event idempotency keys, configurable overflow policy, and framework-version 
 
 ___
 
-v2.3.0 (2026-04-26)
+v2.3.0 (2026-04-27)
 -------------------
 
 Production Safety (v2.3.0)
@@ -581,7 +602,7 @@ Enhancements (v0.1.0)
 
 ___
 
-v0.0.1 (2025-06-22)
+v0.0.1 (2025-06-27)
 -------------------
 
 New Features (v0.0.1)

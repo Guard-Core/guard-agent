@@ -314,7 +314,7 @@ Do not do this in a process that also runs an adapter with `enable_agent=True`. 
 - **`buffer_overflow_policy: Literal["drop", "block", "raise"]`**: Behavior when the in-memory buffer is full (Default: `"drop"`)
   - `"drop"`: silently evict the oldest entry; production-safe for high-throughput, loses events when the SaaS endpoint is unreachable
   - `"block"`: backpressure the caller until a flush frees space; appropriate when event integrity matters more than request latency
-  - `"raise"`: throw `BufferFullError` so callers can react; appropriate in tests or strict environments
+  - `"raise"`: throw `BufferFullError` so callers can react; appropriate in tests or strict environments; it reaches the caller of `send_event` and `send_metric`, while guard-core logs it and never fails a request over it
 
 #### Feature Control
 - **`enable_metrics: bool`**: Enable performance metrics collection (Default: `True`)
@@ -355,7 +355,7 @@ poetry remove fastapi-guard-agent && poetry add guard-agent
 pip uninstall fastapi-guard-agent && pip install guard-agent
 ```
 
-The legacy `fastapi-guard-agent` name is maintained as a meta-package pointing to `guard-agent>=2.0.0,<3.0.0`, so pinned environments keep resolving correctly.
+The legacy `fastapi-guard-agent` name is maintained as a meta-package pointing to `guard-agent>=4.0.0,<5.0.0`, so pinned environments keep resolving correctly.
 
 ---
 

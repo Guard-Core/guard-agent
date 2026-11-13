@@ -2,8 +2,6 @@ name: CI
 
 on:
   workflow_dispatch:
-  # release.yml calls this file so the release gate is the PR gate, never a copy of it.
-  workflow_call:
   push:
     branches:
       - master
